@@ -37,26 +37,31 @@ class ProfileScreen extends ConsumerWidget {
             // Header
             Padding(
               padding: const EdgeInsets.fromLTRB(20, 20, 20, 0),
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
+              child: Row(
                 children: [
-                  Text(
-                    AppStrings.profilePageTitle,
-                    style: const TextStyle(
-                      fontSize: 22,
-                      fontWeight: FontWeight.w800,
-                      color: AppColors.textPrimary,
-                      fontFamily: AppAssets.fontFamily,
-                    ),
+                  Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Text(
+                        AppStrings.profilePageTitle,
+                        style: const TextStyle(
+                          fontSize: 22,
+                          fontWeight: FontWeight.w800,
+                          color: AppColors.textPrimary,
+                          fontFamily: AppAssets.fontFamily,
+                        ),
+                      ),
+                      Text(
+                        AppStrings.profileSubtitle,
+                        style: const TextStyle(
+                          fontSize: 13,
+                          color: AppColors.textSecondary,
+                          fontFamily: AppAssets.fontFamily,
+                        ),
+                      ),
+                    ],
                   ),
-                  Text(
-                    AppStrings.profileSubtitle,
-                    style: const TextStyle(
-                      fontSize: 13,
-                      color: AppColors.textSecondary,
-                      fontFamily: AppAssets.fontFamily,
-                    ),
-                  ),
+                  const Spacer(),
                 ],
               ),
             ),

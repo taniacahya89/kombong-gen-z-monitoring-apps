@@ -213,28 +213,6 @@ class _LoginScreenState extends ConsumerState<LoginScreen>
               textInputAction: TextInputAction.done,
               validator: AppUtils.validatePassword,
             ),
-            const SizedBox(height: 12),
-
-            // Link Lupa Password
-            Align(
-              alignment: Alignment.centerRight,
-              child: GestureDetector(
-                onTap: () {
-                  // TODO (Fase 2): Navigasi ke halaman reset password
-                  AppUtils.showSnackBar(context, 'Fitur lupa password akan segera tersedia');
-                },
-                child: Text(
-                  AppStrings.loginForgotPassword,
-                  style: const TextStyle(
-                    fontSize: 13,
-                    color: AppColors.textAccentGreen,
-                    fontStyle: FontStyle.italic,
-                    fontWeight: FontWeight.w500,
-                    fontFamily: AppAssets.fontFamily,
-                  ),
-                ),
-              ),
-            ),
             const SizedBox(height: 28),
 
             // Tombol Masuk
