@@ -1,0 +1,42 @@
+# ============================================================
+# ROOT .gitignore - iot_pengabdian_masyarakat
+# ============================================================
+
+# ===== KEAMANAN: File sensitif yang TIDAK BOLEH di-commit =====
+# File .env berisi password database, JWT secret, dan kredensial MQTT.
+# Gunakan .env.example sebagai referensi bagi developer lain.
+go_backend/.env
+
+# ===== GO BACKEND =====
+# Binary hasil build
+go_backend/*.exe
+go_backend/tmp_server.exe
+go_backend/server
+
+# Direktori vendor (jika menggunakan go mod vendor)
+go_backend/vendor/
+
+# ===== FLUTTER FRONTEND =====
+# Build artifacts
+flutter_app/build/
+flutter_app/.dart_tool/
+flutter_app/.flutter-plugins-dependencies
+flutter_app/.pub-cache/
+flutter_app/.pub/
+flutter_app/coverage/
+
+# IntelliJ / Android Studio
+flutter_app/.idea/
+*.iml
+*.ipr
+*.iws
+
+# Android build artifacts
+flutter_app/android/app/debug/
+flutter_app/android/app/profile/
+flutter_app/android/app/release/
+
+# ===== SISTEM OPERASI =====
+.DS_Store
+Thumbs.db
+desktop.ini
