@@ -20,10 +20,11 @@ import (
 	"fmt"
 	"log"
 
+	"kombong-genz-backend/internal/config"
+
 	"github.com/jmoiron/sqlx"
 	_ "github.com/lib/pq" // Driver PostgreSQL
 	"golang.org/x/crypto/bcrypt"
-	"kombong-genz-backend/internal/config"
 )
 
 // DB adalah instance database global yang dapat digunakan oleh semua handler.
@@ -137,7 +138,7 @@ func Migrate() error {
 		   (3, 'Pakan Siang', '12:00', 'pakan', true),
 		   (4, 'Minum Siang', '12:30', 'minum', true),
 		   (5, 'Pakan Sore',  '17:00', 'pakan', false),
-		   (6, 'Minum Sore',  '17:30', 'minum', false)
+		   (6, 'Minum Sore',  '17:30', 'minum', true)
 		 ON CONFLICT (id) DO NOTHING`,
 	}
 
@@ -168,7 +169,7 @@ func SeedDefaultUsers() error {
 
 	users := []seedUser{
 		{
-			Name:     "Warga Demo",
+			Name:     "Warga",
 			Email:    "warga@gmail.com",
 			Password: "warga1234",
 			Role:     "warga",
