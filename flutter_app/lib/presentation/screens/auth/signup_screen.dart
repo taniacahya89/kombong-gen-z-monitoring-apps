@@ -160,9 +160,9 @@ class _SignUpScreenState extends ConsumerState<SignUpScreen>
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
             // Judul
-            Text(
+            const Text(
               AppStrings.signupTitle,
-              style: const TextStyle(
+              style: TextStyle(
                 fontSize: 26,
                 fontWeight: FontWeight.w800,
                 color: AppColors.textPrimary,
@@ -172,9 +172,9 @@ class _SignUpScreenState extends ConsumerState<SignUpScreen>
             const SizedBox(height: 6),
 
             // Subtitle
-            Text(
+            const Text(
               AppStrings.signupSubtitle,
-              style: const TextStyle(
+              style: TextStyle(
                 fontSize: 14,
                 color: AppColors.textSecondary,
                 fontFamily: AppAssets.fontFamily,
@@ -235,9 +235,9 @@ class _SignUpScreenState extends ConsumerState<SignUpScreen>
                           color: Colors.white,
                         ),
                       )
-                    : Text(
+                    : const Text(
                         AppStrings.signupButton,
-                        style: const TextStyle(
+                        style: TextStyle(
                           fontSize: 16,
                           fontWeight: FontWeight.w700,
                           fontFamily: AppAssets.fontFamily,
@@ -255,9 +255,9 @@ class _SignUpScreenState extends ConsumerState<SignUpScreen>
     return Row(
       mainAxisAlignment: MainAxisAlignment.center,
       children: [
-        Text(
+        const Text(
           AppStrings.signupHasAccount,
-          style: const TextStyle(
+          style: TextStyle(
             fontSize: 14,
             color: AppColors.textSecondary,
             fontFamily: AppAssets.fontFamily,
@@ -266,9 +266,9 @@ class _SignUpScreenState extends ConsumerState<SignUpScreen>
         const SizedBox(width: 4),
         GestureDetector(
           onTap: () => context.goNamed(AppRouteNames.login),
-          child: Text(
+          child: const Text(
             AppStrings.signupLoginLink,
-            style: const TextStyle(
+            style: TextStyle(
               fontSize: 14,
               fontWeight: FontWeight.w700,
               color: AppColors.primary,

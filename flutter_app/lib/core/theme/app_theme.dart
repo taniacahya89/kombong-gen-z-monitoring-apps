@@ -16,13 +16,10 @@ class AppTheme {
   // Satu-satunya tema yang digunakan pada fase ini.
   // -------------------------------------------------------------------------
   static ThemeData get lightTheme {
-    // Ambil TextTheme Poppins dari google_fonts
-    final poppinsTextTheme = GoogleFonts.poppinsTextTheme();
-
     return ThemeData(
       useMaterial3: true,
       fontFamily: GoogleFonts.poppins().fontFamily,
-      colorScheme: ColorScheme.light(
+      colorScheme: const ColorScheme.light(
         primary: AppColors.primary,
         onPrimary: AppColors.textOnPrimary,
         primaryContainer: AppColors.primaryContainer,
@@ -30,8 +27,6 @@ class AppTheme {
         onSecondary: AppColors.textOnPrimary,
         surface: AppColors.surface,
         onSurface: AppColors.textPrimary,
-        background: AppColors.background,
-        onBackground: AppColors.textPrimary,
         error: AppColors.textAccentRed,
         onError: AppColors.textOnPrimary,
       ),

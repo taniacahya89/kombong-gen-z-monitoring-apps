@@ -7,6 +7,11 @@
 //     Mendukung operasi CRUD yang secara otomatis menyinkronkan state lokal
 //     tanpa perlu fetch ulang dari server (optimistic update).
 //
+// Catatan arsitektur:
+//   Provider ini hanya mengelola jadwal bertipe 'pakan'. Konsep 'jadwal minum'
+//   telah dihapus karena air minum tersedia otomatis di kandang. Status
+//   ketersediaan air ditangani oleh waterAlertProvider secara terpisah.
+//
 // Logika RBAC:
 //   RBAC tidak diimplementasikan di provider ini; provider hanya meneruskan
 //   permintaan ke ApiService. Jika user adalah guest, backend akan menolak
@@ -47,13 +52,7 @@ class ScheduleNotifier extends StateNotifier<ScheduleState> {
   }
 
   /// Membuat jadwal pakan baru dan menambahkannya ke daftar lokal.
-  ///
-  /// Guard lokal: menolak jadwal bertipe "minum" sebelum request dikirim ke API.
-  /// Ini memberikan feedback instan ke user tanpa menunggu round-trip ke server.
   Future<void> createSchedule(FeedingScheduleModel newSchedule) async {
-    if (newSchedule.feedType == 'minum') {
-      throw Exception('Jadwal minum tidak dapat dibuat. Hanya jadwal pakan yang dapat dikelola.');
-    }
     final created = await _api.createFeedingSchedule(newSchedule);
 
     // Tambahkan ke state lokal tanpa fetch ulang
@@ -62,12 +61,7 @@ class ScheduleNotifier extends StateNotifier<ScheduleState> {
   }
 
   /// Memperbarui jadwal yang ada dan menyinkronkan state lokal.
-  ///
-  /// Guard lokal: menolak modifikasi pada jadwal bertipe "minum".
   Future<void> updateSchedule(FeedingScheduleModel updated) async {
-    if (updated.feedType == 'minum') {
-      throw Exception('Jadwal minum tidak dapat diubah. Hanya jadwal pakan yang dapat dikelola.');
-    }
     final savedSchedule = await _api.updateFeedingSchedule(updated);
 
     // Ganti item dengan ID yang sama di state lokal
@@ -86,13 +80,10 @@ class ScheduleNotifier extends StateNotifier<ScheduleState> {
     state = AsyncValue.data(current.where((s) => s.id != id).toList());
   }
 
-  /// Mengembalikan jadwal yang dikelompokkan berdasarkan feed_type.
-  /// Menghasilkan dua list: [pakanList, minumList].
-  (List<FeedingScheduleModel>, List<FeedingScheduleModel>) get groupedSchedules {
+  /// Mengembalikan daftar jadwal pakan (feed_type == 'pakan') yang tersimpan.
+  List<FeedingScheduleModel> get pakanSchedules {
     final all = state.valueOrNull ?? [];
-    final pakanList = all.where((s) => s.feedType == 'pakan').toList();
-    final minumList = all.where((s) => s.feedType == 'minum').toList();
-    return (pakanList, minumList);
+    return all.where((s) => s.feedType == 'pakan').toList();
   }
 
   /// Mengembalikan jadwal berikutnya yang aktif berdasarkan waktu saat ini.

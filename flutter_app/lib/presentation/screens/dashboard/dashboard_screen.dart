@@ -35,7 +35,7 @@ class DashboardScreen extends ConsumerStatefulWidget {
 }
 
 class _DashboardScreenState extends ConsumerState<DashboardScreen> {
-  int _currentNavIndex = 0;
+  final int _currentNavIndex = 0;
   Timer? _pollingTimer;
 
   @override
@@ -164,9 +164,9 @@ class _DashboardScreenState extends ConsumerState<DashboardScreen> {
           margin: const EdgeInsets.only(bottom: 16),
           padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
           decoration: BoxDecoration(
-            color: AppColors.textAccentRed.withOpacity(0.1),
+            color: AppColors.textAccentRed.withValues(alpha: 0.1),
             borderRadius: BorderRadius.circular(AppRadius.md),
-            border: Border.all(color: AppColors.textAccentRed.withOpacity(0.3)),
+            border: Border.all(color: AppColors.textAccentRed.withValues(alpha: 0.3)),
           ),
           child: Row(
             children: [
@@ -192,18 +192,18 @@ class _DashboardScreenState extends ConsumerState<DashboardScreen> {
           margin: const EdgeInsets.only(bottom: 16),
           padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
           decoration: BoxDecoration(
-            color: AppColors.accentOrange.withOpacity(0.1),
+            color: AppColors.accentOrange.withValues(alpha: 0.1),
             borderRadius: BorderRadius.circular(AppRadius.md),
-            border: Border.all(color: AppColors.accentOrange.withOpacity(0.3)),
+            border: Border.all(color: AppColors.accentOrange.withValues(alpha: 0.3)),
           ),
-          child: Row(
+          child: const Row(
             children: [
-              const Icon(Icons.cloud_off, color: AppColors.accentOrange, size: 20),
-              const SizedBox(width: 12),
+              Icon(Icons.cloud_off, color: AppColors.accentOrange, size: 20),
+              SizedBox(width: 12),
               Expanded(
                 child: Text(
                   'Server MQTT terputus. Backend sedang mencoba menghubungkan kembali.',
-                  style: const TextStyle(
+                  style: TextStyle(
                     color: AppColors.accentOrange,
                     fontSize: 12,
                     fontWeight: FontWeight.w600,
@@ -220,18 +220,18 @@ class _DashboardScreenState extends ConsumerState<DashboardScreen> {
           margin: const EdgeInsets.only(bottom: 16),
           padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
           decoration: BoxDecoration(
-            color: AppColors.textSecondary.withOpacity(0.1),
+            color: AppColors.textSecondary.withValues(alpha: 0.1),
             borderRadius: BorderRadius.circular(AppRadius.md),
-            border: Border.all(color: AppColors.textSecondary.withOpacity(0.3)),
+            border: Border.all(color: AppColors.textSecondary.withValues(alpha: 0.3)),
           ),
-          child: Row(
+          child: const Row(
             children: [
-              const Icon(Icons.info_outline, color: AppColors.textSecondary, size: 20),
-              const SizedBox(width: 12),
+              Icon(Icons.info_outline, color: AppColors.textSecondary, size: 20),
+              SizedBox(width: 12),
               Expanded(
                 child: Text(
                   'Belum ada data sensor masuk dari perangkat. Pastikan alat sudah menyala.',
-                  style: const TextStyle(
+                  style: TextStyle(
                     color: AppColors.textSecondary,
                     fontSize: 12,
                     fontWeight: FontWeight.w600,
@@ -326,9 +326,9 @@ class _DashboardScreenState extends ConsumerState<DashboardScreen> {
         Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            Text(
+            const Text(
               AppStrings.dashboardFarmName,
-              style: const TextStyle(
+              style: TextStyle(
                 fontSize: 12,
                 color: AppColors.textSecondary,
                 fontFamily: AppAssets.fontFamily,
@@ -344,7 +344,7 @@ class _DashboardScreenState extends ConsumerState<DashboardScreen> {
                   color: AppColors.textPrimary,
                 ),
                 children: [
-                  TextSpan(text: '${AppStrings.dashboardGreeting} '),
+                  const TextSpan(text: '${AppStrings.dashboardGreeting} '),
                   TextSpan(
                     text: userName,
                     style: const TextStyle(
@@ -450,7 +450,7 @@ class _DashboardScreenState extends ConsumerState<DashboardScreen> {
               height: 44,
               decoration: BoxDecoration(
                 color: isActive
-                    ? AppColors.primaryLight.withOpacity(0.3)
+                    ? AppColors.primaryLight.withValues(alpha: 0.3)
                     : Colors.transparent,
                 shape: BoxShape.circle,
               ),

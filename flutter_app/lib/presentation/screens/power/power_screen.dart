@@ -38,12 +38,12 @@ class PowerScreen extends ConsumerWidget {
               padding: const EdgeInsets.fromLTRB(20, 20, 20, 0),
               child: Row(
                 children: [
-                  Column(
+                  const Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
                       Text(
                         AppStrings.powerPageTitle,
-                        style: const TextStyle(
+                        style: TextStyle(
                           fontSize: 22,
                           fontWeight: FontWeight.w800,
                           color: AppColors.textPrimary,
@@ -52,7 +52,7 @@ class PowerScreen extends ConsumerWidget {
                       ),
                       Text(
                         AppStrings.powerPageSubtitle,
-                        style: const TextStyle(
+                        style: TextStyle(
                           fontSize: 13,
                           color: AppColors.textSecondary,
                           fontFamily: AppAssets.fontFamily,
@@ -209,7 +209,7 @@ class PowerScreen extends ConsumerWidget {
           ),
           const Spacer(),
           // Sparkline dekoratif kuning
-          SizedBox(
+          const SizedBox(
             width: 80,
             height: 48,
             child: CustomPaint(painter: _SparklinePainter(AppColors.chartYellow)),
@@ -431,7 +431,7 @@ class PowerScreen extends ConsumerWidget {
       dotData: const FlDotData(show: false),
       belowBarData: BarAreaData(
         show: true,
-        color: color.withOpacity(0.08),
+        color: color.withValues(alpha: 0.08),
       ),
     );
   }
@@ -612,7 +612,7 @@ class PowerScreen extends ConsumerWidget {
                     height: 44,
                     decoration: BoxDecoration(
                       color: isActive
-                          ? AppColors.primaryLight.withOpacity(0.3)
+                          ? AppColors.primaryLight.withValues(alpha: 0.3)
                           : Colors.transparent,
                       shape: BoxShape.circle,
                     ),

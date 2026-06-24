@@ -34,12 +34,12 @@ class NotificationScreen extends ConsumerWidget {
         backgroundColor: AppColors.background,
         elevation: 0,
         scrolledUnderElevation: 0,
-        title: Column(
+        title: const Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
             Text(
               AppStrings.notifPageTitle,
-              style: const TextStyle(
+              style: TextStyle(
                 fontSize: 20,
                 fontWeight: FontWeight.w800,
                 color: AppColors.textPrimary,
@@ -48,7 +48,7 @@ class NotificationScreen extends ConsumerWidget {
             ),
             Text(
               AppStrings.notifPageSubtitle,
-              style: const TextStyle(
+              style: TextStyle(
                 fontSize: 12,
                 color: AppColors.textSecondary,
                 fontFamily: AppAssets.fontFamily,
@@ -224,7 +224,7 @@ class NotificationScreen extends ConsumerWidget {
               BoxShadow(
                 color: notif.isRead
                     ? AppColors.shadow
-                    : AppColors.primary.withOpacity(0.08),
+                    : AppColors.primary.withValues(alpha: 0.08),
                 blurRadius: 8,
                 offset: const Offset(0, 2),
               ),

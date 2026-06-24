@@ -35,8 +35,8 @@ class ProfileScreen extends ConsumerWidget {
         child: Column(
           children: [
             // Header
-            Padding(
-              padding: const EdgeInsets.fromLTRB(20, 20, 20, 0),
+            const Padding(
+              padding: EdgeInsets.fromLTRB(20, 20, 20, 0),
               child: Row(
                 children: [
                   Column(
@@ -44,7 +44,7 @@ class ProfileScreen extends ConsumerWidget {
                     children: [
                       Text(
                         AppStrings.profilePageTitle,
-                        style: const TextStyle(
+                        style: TextStyle(
                           fontSize: 22,
                           fontWeight: FontWeight.w800,
                           color: AppColors.textPrimary,
@@ -53,7 +53,7 @@ class ProfileScreen extends ConsumerWidget {
                       ),
                       Text(
                         AppStrings.profileSubtitle,
-                        style: const TextStyle(
+                        style: TextStyle(
                           fontSize: 13,
                           color: AppColors.textSecondary,
                           fontFamily: AppAssets.fontFamily,
@@ -61,7 +61,7 @@ class ProfileScreen extends ConsumerWidget {
                       ),
                     ],
                   ),
-                  const Spacer(),
+                  Spacer(),
                 ],
               ),
             ),
@@ -455,7 +455,7 @@ class ProfileScreen extends ConsumerWidget {
                     height: 44,
                     decoration: BoxDecoration(
                       color: isActive
-                          ? AppColors.primaryLight.withOpacity(0.3)
+                          ? AppColors.primaryLight.withValues(alpha: 0.3)
                           : Colors.transparent,
                       shape: BoxShape.circle,
                     ),

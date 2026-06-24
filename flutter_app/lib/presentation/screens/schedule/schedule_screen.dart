@@ -1,16 +1,19 @@
 // lib/presentation/screens/schedule/schedule_screen.dart
 //
-// Halaman Jadwal Pakan - Manajemen jadwal makan dan minum ayam.
+// Halaman Jadwal Pakan - Manajemen jadwal pakan ayam.
 //
-// Desain (dari gambar referensi):
-//   - Header: judul "Jadwal Makan" + subtitle
-//   - Kartu jadwal berikutnya: waktu besar + label
-//   - Dua section kartu: "Pakan Ayam" dan "Minum Ayam"
-//   - Setiap kartu jadwal: label, waktu, toggle aktif/nonaktif, dan tombol edit/hapus
+// Desain:
+//   - Header: judul + subtitle
+//   - Banner panduan nutrisi (akses ke FeedNutritionScreen)
+//   - Kartu jadwal berikutnya
+//   - Section kartu: "Pakan Ayam"
+//   - Water Status Card: status ketersediaan air minum real-time (dari sensor)
 //   - FAB tambah jadwal baru
 //   - RBAC: Jika role guest, FAB dan tombol aksi disembunyikan/disabled
 //
-// State management: scheduleProvider (Riverpod StateNotifier)
+// State management:
+//   - scheduleProvider: daftar jadwal pakan
+//   - waterAlertProvider: status sensor air minum + logika notifikasi
 
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
@@ -20,6 +23,8 @@ import '../../../core/constants/app_constants.dart';
 import '../../../core/routes/app_routes.dart';
 import '../../../core/providers/schedule_provider.dart';
 import '../../../core/providers/auth_provider.dart';
+import '../../../core/providers/water_alert_provider.dart';
+import '../../../core/utils/app_utils.dart';
 import '../../../data/models/feeding_schedule_model.dart';
 
 class ScheduleScreen extends ConsumerWidget {
@@ -44,12 +49,12 @@ class ScheduleScreen extends ConsumerWidget {
               padding: const EdgeInsets.fromLTRB(20, 20, 20, 0),
               child: Row(
                 children: [
-                  Column(
+                  const Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
                       Text(
                         AppStrings.schedulePageTitle,
-                        style: const TextStyle(
+                        style: TextStyle(
                           fontSize: 22,
                           fontWeight: FontWeight.w800,
                           color: AppColors.textPrimary,
@@ -58,7 +63,7 @@ class ScheduleScreen extends ConsumerWidget {
                       ),
                       Text(
                         AppStrings.schedulePageSubtitle,
-                        style: const TextStyle(
+                        style: TextStyle(
                           fontSize: 13,
                           color: AppColors.textSecondary,
                           fontFamily: AppAssets.fontFamily,
@@ -87,15 +92,15 @@ class ScheduleScreen extends ConsumerWidget {
                   borderRadius: BorderRadius.circular(AppRadius.md),
                   border: Border.all(color: const Color(0xFFFFCC80)),
                 ),
-                child: Row(
+                child: const Row(
                   children: [
-                    const Icon(Icons.lock_outline_rounded,
+                    Icon(Icons.lock_outline_rounded,
                         size: 16, color: Color(0xFFEF6C00)),
-                    const SizedBox(width: 8),
+                    SizedBox(width: 8),
                     Expanded(
                       child: Text(
                         AppStrings.scheduleGuestWarning,
-                        style: const TextStyle(
+                        style: TextStyle(
                           fontSize: 12,
                           color: Color(0xFFEF6C00),
                           fontFamily: AppAssets.fontFamily,
@@ -119,9 +124,9 @@ class ScheduleScreen extends ConsumerWidget {
                       const Icon(Icons.error_outline,
                           color: AppColors.textHint, size: 48),
                       const SizedBox(height: 12),
-                      Text(
+                      const Text(
                         'Gagal memuat jadwal',
-                        style: const TextStyle(
+                        style: TextStyle(
                           color: AppColors.textSecondary,
                           fontFamily: AppAssets.fontFamily,
                         ),
@@ -138,7 +143,7 @@ class ScheduleScreen extends ConsumerWidget {
                 data: (schedules) {
                   final notifier = ref.read(scheduleProvider.notifier);
                   final nextSchedule = notifier.nextSchedule;
-                  final (pakanList, minumList) = notifier.groupedSchedules;
+                  final pakanList = notifier.pakanSchedules;
 
                   return RefreshIndicator(
                     onRefresh: () => notifier.loadSchedules(),
@@ -148,6 +153,10 @@ class ScheduleScreen extends ConsumerWidget {
                       padding: const EdgeInsets.fromLTRB(20, 16, 20, 100),
                       child: Column(
                         children: [
+                          // Banner Panduan Nutrisi
+                          _buildNutritionGuideBanner(context),
+                          const SizedBox(height: 16),
+
                           // Kartu Jadwal Berikutnya
                           if (nextSchedule != null)
                             _buildNextScheduleCard(nextSchedule),
@@ -165,25 +174,15 @@ class ScheduleScreen extends ConsumerWidget {
                             const SizedBox(height: 16),
                           ],
 
-                          // Section Minum Ayam
-                          if (minumList.isNotEmpty)
-                            _buildScheduleSection(
-                              context: context,
-                              ref: ref,
-                              title: AppStrings.scheduleSectionMinum,
-                              schedules: minumList,
-                              canEdit: canEdit,
-                            ),
-
-                          if (schedules.isEmpty)
-                            Padding(
-                              padding: const EdgeInsets.all(40),
+                          if (pakanList.isEmpty)
+                            const Padding(
+                              padding: EdgeInsets.all(40),
                               child: Column(
                                 children: [
-                                  const Icon(Icons.schedule_outlined,
+                                  Icon(Icons.schedule_outlined,
                                       size: 64, color: AppColors.textHint),
-                                  const SizedBox(height: 16),
-                                  const Text(
+                                  SizedBox(height: 16),
+                                  Text(
                                     'Belum ada jadwal pakan',
                                     style: TextStyle(
                                       color: AppColors.textSecondary,
@@ -193,6 +192,9 @@ class ScheduleScreen extends ConsumerWidget {
                                 ],
                               ),
                             ),
+
+                          // Water Status Card — selalu tampil di bawah
+                          _buildWaterStatusCard(ref),
                         ],
                       ),
                     ),
@@ -244,9 +246,9 @@ class ScheduleScreen extends ConsumerWidget {
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          Text(
+          const Text(
             AppStrings.scheduleNextLabel,
-            style: const TextStyle(
+            style: TextStyle(
               fontSize: 12,
               color: AppColors.textSecondary,
               fontFamily: AppAssets.fontFamily,
@@ -273,6 +275,246 @@ class ScheduleScreen extends ConsumerWidget {
             ),
           ),
         ],
+      ),
+    );
+  }
+
+  // ---------------------------------------------------------------------------
+  // WATER STATUS CARD
+  // ---------------------------------------------------------------------------
+
+  Widget _buildWaterStatusCard(WidgetRef ref) {
+    final waterAlert = ref.watch(waterAlertProvider);
+
+    // Tentukan warna berdasarkan kondisi kritis
+    final Color statusColor = waterAlert.isCritical
+        ? AppColors.textAccentRed
+        : AppColors.primary;
+    final Color statusBgColor = waterAlert.isCritical
+        ? const Color(0xFFFFEBEE) // merah sangat muda
+        : AppColors.primaryContainer;
+    final Color borderColor = waterAlert.isCritical
+        ? const Color(0xFFEF9A9A)
+        : AppColors.primaryLight.withValues(alpha: 0.4);
+
+    final String statusLabel = waterAlert.isCritical
+        ? AppStrings.waterStatusCritical
+        : AppStrings.waterStatusSafe;
+    final String statusSub = waterAlert.isCritical
+        ? AppStrings.waterStatusSubCritical
+        : AppStrings.waterStatusSubSafe;
+    final IconData statusIcon = waterAlert.isCritical
+        ? Icons.warning_amber_rounded
+        : Icons.water_drop_rounded;
+
+    return Container(
+      width: double.infinity,
+      padding: const EdgeInsets.all(16),
+      decoration: BoxDecoration(
+        color: AppColors.surface,
+        borderRadius: BorderRadius.circular(AppRadius.lg),
+        boxShadow: const [
+          BoxShadow(color: AppColors.shadow, blurRadius: 8, offset: Offset(0, 2)),
+        ],
+        border: Border.all(color: borderColor),
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          // Baris judul + ikon status
+          Row(
+            children: [
+              Container(
+                width: 36,
+                height: 36,
+                decoration: BoxDecoration(
+                  color: statusBgColor,
+                  borderRadius: BorderRadius.circular(AppRadius.sm),
+                ),
+                child: Icon(statusIcon, color: statusColor, size: 20),
+              ),
+              const SizedBox(width: 12),
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    const Text(
+                      AppStrings.waterStatusTitle,
+                      style: TextStyle(
+                        fontSize: 12,
+                        fontWeight: FontWeight.w600,
+                        color: AppColors.textSecondary,
+                        fontFamily: AppAssets.fontFamily,
+                        letterSpacing: 0.3,
+                      ),
+                    ),
+                    Text(
+                      statusLabel,
+                      style: TextStyle(
+                        fontSize: 14,
+                        fontWeight: FontWeight.w700,
+                        color: statusColor,
+                        fontFamily: AppAssets.fontFamily,
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+
+              // Badge persentase level
+              if (waterAlert.levelPercentage != null && !waterAlert.isLoading)
+                Container(
+                  padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
+                  decoration: BoxDecoration(
+                    color: statusBgColor,
+                    borderRadius: BorderRadius.circular(AppRadius.full),
+                  ),
+                  child: Text(
+                    '${(waterAlert.levelPercentage! * 100).toInt()}%',
+                    style: TextStyle(
+                      fontSize: 13,
+                      fontWeight: FontWeight.w800,
+                      color: statusColor,
+                      fontFamily: AppAssets.fontFamily,
+                    ),
+                  ),
+                ),
+            ],
+          ),
+
+          const SizedBox(height: 12),
+
+          // Progress bar level air
+          if (!waterAlert.isLoading && waterAlert.levelPercentage != null) ...[
+            ClipRRect(
+              borderRadius: BorderRadius.circular(AppRadius.full),
+              child: LinearProgressIndicator(
+                value: waterAlert.levelPercentage,
+                minHeight: 8,
+                backgroundColor: AppColors.inputFill,
+                valueColor: AlwaysStoppedAnimation<Color>(statusColor),
+              ),
+            ),
+            const SizedBox(height: 8),
+
+            // Informasi detail ketinggian
+            Row(
+              mainAxisAlignment: MainAxisAlignment.spaceBetween,
+              children: [
+                Text(
+                  '${AppUtils.formatSensorValue(waterAlert.currentHeightCm ?? 0)} cm'
+                  ' / ${AppUtils.formatSensorValue(waterAlert.maxCapacityCm ?? 0)} cm',
+                  style: const TextStyle(
+                    fontSize: 11,
+                    color: AppColors.textHint,
+                    fontFamily: AppAssets.fontFamily,
+                  ),
+                ),
+                Text(
+                  AppUtils.getWaterTankStatus(waterAlert.levelPercentage!),
+                  style: TextStyle(
+                    fontSize: 11,
+                    fontWeight: FontWeight.w600,
+                    color: AppUtils.getWaterTankStatusColor(waterAlert.levelPercentage!),
+                    fontFamily: AppAssets.fontFamily,
+                  ),
+                ),
+              ],
+            ),
+          ],
+
+          if (waterAlert.isLoading)
+            const Padding(
+              padding: EdgeInsets.only(top: 4),
+              child: LinearProgressIndicator(
+                minHeight: 4,
+                backgroundColor: AppColors.inputFill,
+                valueColor: AlwaysStoppedAnimation<Color>(AppColors.primary),
+              ),
+            ),
+
+          const SizedBox(height: 10),
+
+          // Teks keterangan
+          Text(
+            statusSub,
+            style: const TextStyle(
+              fontSize: 12,
+              color: AppColors.textSecondary,
+              fontFamily: AppAssets.fontFamily,
+              height: 1.4,
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  // ---------------------------------------------------------------------------
+  // BANNER PANDUAN NUTRISI
+  // ---------------------------------------------------------------------------
+
+  Widget _buildNutritionGuideBanner(BuildContext context) {
+    return GestureDetector(
+      onTap: () => context.pushNamed(AppRouteNames.feedNutrition),
+      child: Container(
+        width: double.infinity,
+        padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 13),
+        decoration: BoxDecoration(
+          gradient: const LinearGradient(
+            colors: [AppColors.primary, AppColors.primaryLight],
+            begin: Alignment.centerLeft,
+            end: Alignment.centerRight,
+          ),
+          borderRadius: BorderRadius.circular(AppRadius.lg),
+          boxShadow: const [
+            BoxShadow(
+                color: AppColors.shadowMedium,
+                blurRadius: 8,
+                offset: Offset(0, 3)),
+          ],
+        ),
+        child: Row(
+          children: [
+            Container(
+              width: 38,
+              height: 38,
+              decoration: BoxDecoration(
+                color: Colors.white.withValues(alpha: 0.2),
+                borderRadius: BorderRadius.circular(AppRadius.md),
+              ),
+              child: const Icon(Icons.menu_book_rounded,
+                  color: Colors.white, size: 20),
+            ),
+            const SizedBox(width: 12),
+            const Expanded(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(
+                    AppStrings.feedNutritionBannerLabel,
+                    style: TextStyle(
+                      fontSize: 14,
+                      fontWeight: FontWeight.w700,
+                      color: Colors.white,
+                      fontFamily: AppAssets.fontFamily,
+                    ),
+                  ),
+                  Text(
+                    AppStrings.feedNutritionBannerSub,
+                    style: TextStyle(
+                      fontSize: 11,
+                      color: Color(0xD9FFFFFF), // Colors.white at 85% opacity
+                      fontFamily: AppAssets.fontFamily,
+                    ),
+                  ),
+                ],
+              ),
+            ),
+            const Icon(Icons.arrow_forward_ios_rounded,
+                color: Colors.white, size: 14),
+          ],
+        ),
       ),
     );
   }
@@ -399,7 +641,7 @@ class ScheduleScreen extends ConsumerWidget {
                     }
                   }
                 },
-                activeColor: AppColors.primary,
+                activeThumbColor: AppColors.primary,
                 materialTapTargetSize: MaterialTapTargetSize.shrinkWrap,
               ),
               IconButton(
@@ -560,14 +802,14 @@ class ScheduleScreen extends ConsumerWidget {
                     ),
                     const SizedBox(width: 8),
                     // Chip "Minum" ditampilkan tapi tidak dapat dipilih
-                    Tooltip(
+                    const Tooltip(
                       message: 'Jadwal minum tidak dapat dikelola',
                       child: ChoiceChip(
-                        label: const Text('Minum'),
+                        label: Text('Minum'),
                         selected: false,
                         onSelected: null, // null = disabled
                         disabledColor: AppColors.inputFill,
-                        labelStyle: const TextStyle(
+                        labelStyle: TextStyle(
                           fontFamily: AppAssets.fontFamily,
                           color: AppColors.textHint,
                         ),
@@ -588,7 +830,7 @@ class ScheduleScreen extends ConsumerWidget {
                     Switch(
                       value: isActive,
                       onChanged: (v) => setDialogState(() => isActive = v),
-                      activeColor: AppColors.primary,
+                      activeThumbColor: AppColors.primary,
                     ),
                   ],
                 ),
@@ -779,7 +1021,7 @@ class ScheduleScreen extends ConsumerWidget {
                     height: 44,
                     decoration: BoxDecoration(
                       color: isActive
-                          ? AppColors.primaryLight.withOpacity(0.3)
+                          ? AppColors.primaryLight.withValues(alpha: 0.3)
                           : Colors.transparent,
                       shape: BoxShape.circle,
                     ),

@@ -157,12 +157,32 @@ class AppStrings {
   static const String scheduleAddButton = 'Tambah Jadwal';
   static const String scheduleGuestWarning = 'Anda login sebagai tamu. Hanya warga yang dapat mengelola jadwal.';
 
+  // Halaman Info Pakan Ayam (Panduan Nutrisi)
+  static const String feedNutritionBannerLabel = 'Lihat Panduan Nutrisi';
+  static const String feedNutritionBannerSub = 'Komposisi & porsi pakan per kelompok umur';
+  static const String feedNutritionPageTitle = 'Info Pakan Ayam';
+  static const String feedNutritionPageSubtitle = 'Panduan nutrisi & komposisi pakan harian';
+  static const String feedNutritionTabMorning = 'Jadwal Pagi';
+  static const String feedNutritionTabAfternoon = 'Jadwal Sore';
+  static const String feedNutritionPorsiLabel = 'Porsi';
+  static const String feedNutritionKomposisiLabel = 'Komposisi';
+  static const String feedNutritionKeteranganLabel = 'Keterangan';
+
   // Halaman Daya
   static const String powerPageTitle = 'Tegangan dan Arus';
   static const String powerPageSubtitle = 'Monitoring daya listrik kandang.';
   static const String powerGenerating = 'GENERATING POWER';
   static const String powerCurrent = 'CURRENT';
   static const String powerVoltage = 'VOLTAGE';
+
+  // Water Status Card (pada halaman Jadwal)
+  static const String waterStatusTitle = 'Status Air Minum';
+  static const String waterStatusSafe = 'Air Minum Tersedia';
+  static const String waterStatusCritical = 'Tangki Air Kritis';
+  static const String waterStatusSubSafe = 'Tersedia otomatis. Tangki dalam kondisi aman.';
+  static const String waterStatusSubCritical = 'Segera isi tangki! Kapasitas air di bawah batas aman.';
+  static const String waterNotifTitle = 'Air Minum Kandang Habis';
+  static const String waterNotifBody = 'Air Minum Kandang Habis, Segera Isi Tangki';
 
   // Halaman Profil
   static const String profilePageTitle = 'Profil';
@@ -312,3 +332,24 @@ class AppDuration {
   static const Duration medium = Duration(milliseconds: 350);
   static const Duration long = Duration(milliseconds: 500);
 }
+
+// ---------------------------------------------------------------------------
+// KONFIGURASI BISNIS
+// ---------------------------------------------------------------------------
+
+class AppConfig {
+  AppConfig._();
+
+  /// Batas level tangki air (0.0 - 1.0) yang dianggap kritis.
+  /// Level di bawah nilai ini akan memicu peringatan dan notifikasi.
+  /// 0.3 = 30% dari kapasitas penuh (sejajar dengan kategori "Rendah"
+  /// yang ditetapkan oleh AppUtils.getWaterTankStatus).
+  static const double waterCriticalThreshold = 0.3;
+
+  /// Interval minimum antar dua local push notification untuk kategori
+  /// yang sama. Mencegah spam jika sensor terus melaporkan level kritis.
+  /// Nilai 5 menit dipilih agar pengguna tidak terganggu tetapi tetap
+  /// mendapat pengingat jika aplikasi dibiarkan terbuka lama.
+  static const Duration notificationCooldown = Duration(minutes: 5);
+}
+

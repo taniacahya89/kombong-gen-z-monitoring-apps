@@ -451,7 +451,7 @@ class _WaterTankPainter extends CustomPainter {
       ..color = const Color(0xFFB0BEC5)
       ..strokeWidth = 1;
 
-    final textStyle = const TextStyle(
+    const textStyle = TextStyle(
       color: Color(0xFF90A4AE),
       fontSize: 8,
       fontWeight: FontWeight.w500,

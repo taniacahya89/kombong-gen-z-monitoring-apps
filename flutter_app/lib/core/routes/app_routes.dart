@@ -15,6 +15,7 @@ import '../../presentation/screens/schedule/schedule_screen.dart';
 import '../../presentation/screens/power/power_screen.dart';
 import '../../presentation/screens/profile/profile_screen.dart';
 import '../../presentation/screens/notification/notification_screen.dart';
+import '../../presentation/screens/schedule/feed_nutrition_screen.dart';
 
 // ---------------------------------------------------------------------------
 // NAMA ROUTE (KONSTANTA)
@@ -33,6 +34,7 @@ class AppRouteNames {
   static const String power = 'power';
   static const String profile = 'profile';
   static const String notifications = 'notifications';
+  static const String feedNutrition = 'feedNutrition';
 }
 
 // ---------------------------------------------------------------------------
@@ -50,6 +52,7 @@ class AppRoutePaths {
   static const String power = '/power';
   static const String profile = '/profile';
   static const String notifications = '/notifications';
+  static const String feedNutrition = '/feed-nutrition';
 }
 
 // ---------------------------------------------------------------------------
@@ -141,6 +144,17 @@ class AppRoutes {
         pageBuilder: (context, state) => _buildPageWithSlideFromRight(
           state: state,
           child: const NotificationScreen(),
+        ),
+      ),
+
+      // Feed Nutrition Screen
+      // Dipush dari halaman Schedule sebagai detail page (slide dari kanan).
+      GoRoute(
+        name: AppRouteNames.feedNutrition,
+        path: AppRoutePaths.feedNutrition,
+        pageBuilder: (context, state) => _buildPageWithSlideFromRight(
+          state: state,
+          child: const FeedNutritionScreen(),
         ),
       ),
     ],

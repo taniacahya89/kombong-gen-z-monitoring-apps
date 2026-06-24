@@ -138,9 +138,9 @@ class _SplashScreenState extends ConsumerState<SplashScreen>
                       const SizedBox(height: 40),
 
                       // Judul Besar
-                      Text(
+                      const Text(
                         'Kombong\nGenZ',
-                        style: const TextStyle(
+                        style: TextStyle(
                           fontSize: 48,
                           fontWeight: FontWeight.w800,
                           color: AppColors.splashTitle,
@@ -151,9 +151,9 @@ class _SplashScreenState extends ConsumerState<SplashScreen>
                       const SizedBox(height: 10),
 
                       // Tagline
-                      Text(
+                      const Text(
                         AppStrings.appTagline,
-                        style: const TextStyle(
+                        style: TextStyle(
                           fontSize: 15,
                           fontWeight: FontWeight.w500,
                           color: Color(0xFF7D5E3C),

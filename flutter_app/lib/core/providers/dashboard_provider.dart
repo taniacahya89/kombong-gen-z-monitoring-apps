@@ -26,7 +26,7 @@
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../data/models/water_tank_model.dart';
 import '../../data/models/solar_metrics_model.dart';
-import '../../data/services/api_service.dart';
+
 import 'auth_provider.dart';
 
 // ---------------------------------------------------------------------------

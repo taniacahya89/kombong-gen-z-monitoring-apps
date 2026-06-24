@@ -168,9 +168,9 @@ class _LoginScreenState extends ConsumerState<LoginScreen>
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
             // Judul
-            Text(
+            const Text(
               AppStrings.loginTitle,
-              style: const TextStyle(
+              style: TextStyle(
                 fontSize: 26,
                 fontWeight: FontWeight.w800,
                 color: AppColors.textPrimary,
@@ -180,9 +180,9 @@ class _LoginScreenState extends ConsumerState<LoginScreen>
             const SizedBox(height: 6),
 
             // Subtitle
-            Text(
+            const Text(
               AppStrings.loginSubtitle,
-              style: const TextStyle(
+              style: TextStyle(
                 fontSize: 14,
                 color: AppColors.textSecondary,
                 fontFamily: AppAssets.fontFamily,
@@ -230,9 +230,9 @@ class _LoginScreenState extends ConsumerState<LoginScreen>
                           color: Colors.white,
                         ),
                       )
-                    : Text(
+                    : const Text(
                         AppStrings.loginButton,
-                        style: const TextStyle(
+                        style: TextStyle(
                           fontSize: 16,
                           fontWeight: FontWeight.w700,
                           fontFamily: AppAssets.fontFamily,
@@ -250,9 +250,9 @@ class _LoginScreenState extends ConsumerState<LoginScreen>
     return Row(
       mainAxisAlignment: MainAxisAlignment.center,
       children: [
-        Text(
+        const Text(
           AppStrings.loginNoAccount,
-          style: const TextStyle(
+          style: TextStyle(
             fontSize: 14,
             color: AppColors.textSecondary,
             fontFamily: AppAssets.fontFamily,
@@ -261,9 +261,9 @@ class _LoginScreenState extends ConsumerState<LoginScreen>
         const SizedBox(width: 4),
         GestureDetector(
           onTap: () => context.goNamed(AppRouteNames.signup),
-          child: Text(
+          child: const Text(
             AppStrings.loginRegisterLink,
-            style: const TextStyle(
+            style: TextStyle(
               fontSize: 14,
               fontWeight: FontWeight.w700,
               color: AppColors.primary,

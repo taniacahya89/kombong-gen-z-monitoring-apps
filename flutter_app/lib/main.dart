@@ -11,23 +11,30 @@
 
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
+import 'package:flutter/foundation.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import 'core/routes/app_routes.dart';
 import 'core/theme/app_theme.dart';
 import 'core/constants/app_constants.dart';
+import 'data/services/local_notification_service.dart';
 
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
 
-  // Kunci orientasi layar ke portrait
-  await SystemChrome.setPreferredOrientations([
-    DeviceOrientation.portraitUp,
-    DeviceOrientation.portraitDown,
-  ]);
+  // setPreferredOrientations hanya relevan di mobile — tidak perlu di web/desktop
+  if (!kIsWeb) {
+    await SystemChrome.setPreferredOrientations([
+      DeviceOrientation.portraitUp,
+      DeviceOrientation.portraitDown,
+    ]);
+  }
+
+  // Inisialisasi local push notification service.
+  // Dilewati di platform web karena flutter_local_notifications tidak mendukung web.
+  await LocalNotificationService.instance.initialize();
 
   // Konfigurasi tampilan status bar sistem
-  // Ikon gelap agar terlihat di atas background hijau muda
   SystemChrome.setSystemUIOverlayStyle(
     const SystemUiOverlayStyle(
       statusBarColor: Colors.transparent,
@@ -38,7 +45,6 @@ void main() async {
   );
 
   runApp(
-    // ProviderScope diperlukan oleh flutter_riverpod untuk injeksi state
     const ProviderScope(
       child: KombongGenZApp(),
     ),

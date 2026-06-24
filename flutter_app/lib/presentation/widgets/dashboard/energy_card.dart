@@ -40,9 +40,9 @@ class EnergyCard extends StatelessWidget {
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           // Label header all-caps
-          Text(
+          const Text(
             AppStrings.liveEnergyTitle,
-            style: const TextStyle(
+            style: TextStyle(
               fontSize: 11,
               fontWeight: FontWeight.w600,
               color: AppColors.textSecondary,
