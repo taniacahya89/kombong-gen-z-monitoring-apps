@@ -20,11 +20,28 @@ import '../../../core/routes/app_routes.dart';
 import '../../../core/providers/power_provider.dart';
 import '../../../data/models/solar_metrics_model.dart';
 
-class PowerScreen extends ConsumerWidget {
+class PowerScreen extends ConsumerStatefulWidget {
   const PowerScreen({super.key});
 
   @override
-  Widget build(BuildContext context, WidgetRef ref) {
+  ConsumerState<PowerScreen> createState() => _PowerScreenState();
+}
+
+class _PowerScreenState extends ConsumerState<PowerScreen> {
+
+  @override
+  void initState() {
+    super.initState();
+  }
+
+  @override
+  void dispose() {
+    super.dispose();
+  }
+
+
+  @override
+  Widget build(BuildContext context) {
     final latestAsync = ref.watch(powerLatestProvider);
     final historyAsync = ref.watch(powerHistoryProvider);
 

@@ -18,22 +18,18 @@ dependencies:
   # State Management
   flutter_riverpod: ^2.5.1
 
-  # HTTP Client
-  dio: ^5.4.3+1
-
-  # MQTT Client
-  mqtt_client: ^10.2.1
-
-  # Storage
-  shared_preferences: ^2.2.3
-  flutter_secure_storage: ^9.0.0
+  # Firebase
+  firebase_core: ^3.6.0
+  firebase_auth: ^5.3.1
+  firebase_database: ^11.1.4
+  cloud_firestore: ^5.4.4
 
   # UI Components
   fl_chart: ^0.68.0
   shimmer: ^3.0.0
   cached_network_image: ^3.3.1
 
-  # Font (Google Fonts - tidak perlu file TTF manual)
+  # Font (Google Fonts)
   google_fonts: ^6.2.1
 
   # Utilities
@@ -42,7 +38,8 @@ dependencies:
   json_annotation: ^4.9.0
 
   # Local Push Notification
-  flutter_local_notifications: ^17.2.4
+  flutter_local_notifications: ^17.0.0
+  mqtt_client: ^10.11.11
 
 dev_dependencies:
   flutter_test:

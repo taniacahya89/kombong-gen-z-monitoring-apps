@@ -1,27 +1,16 @@
 // lib/core/providers/schedule_provider.dart
 //
-// State management untuk Jadwal Pakan menggunakan Riverpod.
-//
-// Provider yang disediakan:
-//   - scheduleProvider: mengelola daftar jadwal pakan dari backend.
-//     Mendukung operasi CRUD yang secara otomatis menyinkronkan state lokal
-//     tanpa perlu fetch ulang dari server (optimistic update).
-//
-// Catatan arsitektur:
-//   Provider ini hanya mengelola jadwal bertipe 'pakan'. Konsep 'jadwal minum'
-//   telah dihapus karena air minum tersedia otomatis di kandang. Status
-//   ketersediaan air ditangani oleh waterAlertProvider secara terpisah.
-//
-// Logika RBAC:
-//   RBAC tidak diimplementasikan di provider ini; provider hanya meneruskan
-//   permintaan ke ApiService. Jika user adalah guest, backend akan menolak
-//   request mutasi dengan 403 Forbidden, dan error tersebut akan dilempar
-//   kembali ke UI untuk ditampilkan sebagai pesan kesalahan.
+// State management untuk Jadwal Pakan menggunakan Riverpod dan Cloud Firestore.
 
+import 'dart:async';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../data/models/feeding_schedule_model.dart';
-import '../../data/services/api_service.dart';
-import 'auth_provider.dart';
+import '../../data/services/firestore_service.dart';
+
+// Provider global untuk instance FirestoreService (singleton).
+final firestoreServiceProvider = Provider<FirestoreService>((ref) {
+  return FirestoreService();
+});
 
 // State untuk daftar jadwal.
 typedef ScheduleState = AsyncValue<List<FeedingScheduleModel>>;
@@ -29,55 +18,80 @@ typedef ScheduleState = AsyncValue<List<FeedingScheduleModel>>;
 // Provider yang mengelola daftar jadwal pakan.
 final scheduleProvider =
     StateNotifierProvider<ScheduleNotifier, ScheduleState>((ref) {
-  final service = ref.watch(authServiceProvider);
+  final service = ref.watch(firestoreServiceProvider);
   return ScheduleNotifier(service);
 });
 
-/// ScheduleNotifier mengelola daftar jadwal pakan.
-/// Menyediakan operasi CRUD yang:
-///   1. Memanggil endpoint API yang sesuai.
-///   2. Memperbarui state lokal secara langsung (tanpa fetch ulang) untuk
-///      menghindari loading state yang tidak perlu saat user melakukan mutasi.
 class ScheduleNotifier extends StateNotifier<ScheduleState> {
-  final ApiService _api;
+  final FirestoreService _firestore;
+  StreamSubscription? _subscription;
 
-  ScheduleNotifier(this._api) : super(const AsyncValue.loading()) {
+  ScheduleNotifier(this._firestore) : super(const AsyncValue.loading()) {
     loadSchedules();
   }
 
-  /// Mengambil daftar jadwal dari backend dan menyimpan ke state.
+  @override
+  void dispose() {
+    _subscription?.cancel();
+    super.dispose();
+  }
+
+  /// Memulai sinkronisasi data real-time dengan Cloud Firestore.
   Future<void> loadSchedules() async {
-    state = const AsyncValue.loading();
-    state = await AsyncValue.guard(() => _api.getFeedingSchedules());
-  }
-
-  /// Membuat jadwal pakan baru dan menambahkannya ke daftar lokal.
-  Future<void> createSchedule(FeedingScheduleModel newSchedule) async {
-    final created = await _api.createFeedingSchedule(newSchedule);
-
-    // Tambahkan ke state lokal tanpa fetch ulang
-    final current = state.valueOrNull ?? [];
-    state = AsyncValue.data([...current, created]);
-  }
-
-  /// Memperbarui jadwal yang ada dan menyinkronkan state lokal.
-  Future<void> updateSchedule(FeedingScheduleModel updated) async {
-    final savedSchedule = await _api.updateFeedingSchedule(updated);
-
-    // Ganti item dengan ID yang sama di state lokal
-    final current = state.valueOrNull ?? [];
-    state = AsyncValue.data(
-      current.map((s) => s.id == savedSchedule.id ? savedSchedule : s).toList(),
+    _subscription?.cancel();
+    _subscription = _firestore.watchFeedingSchedules().listen(
+      (schedules) {
+        state = AsyncValue.data(schedules);
+      },
+      onError: (err, stack) {
+        state = AsyncValue.error(err, stack);
+      },
     );
   }
 
-  /// Menghapus jadwal dan menghapusnya dari state lokal.
-  Future<void> deleteSchedule(int id) async {
-    await _api.deleteFeedingSchedule(id);
+  /// Membuat jadwal pakan baru.
+  Future<void> createSchedule(FeedingScheduleModel newSchedule) async {
+    await _firestore.createFeedingSchedule(newSchedule);
+  }
 
-    // Hapus item dari state lokal
-    final current = state.valueOrNull ?? [];
-    state = AsyncValue.data(current.where((s) => s.id != id).toList());
+  /// Memperbarui jadwal yang ada.
+  Future<void> updateSchedule(FeedingScheduleModel updated) async {
+    String firestoreId = updated.firestoreId;
+    // Jika firestoreId kosong (karena dibuat baru di UI tanpa id Firestore),
+    // lakukan pencarian berdasarkan hashcode/int id.
+    if (firestoreId.isEmpty) {
+      final list = state.valueOrNull ?? [];
+      for (final s in list) {
+        if (s.id == updated.id) {
+          firestoreId = s.firestoreId;
+          break;
+        }
+      }
+    }
+    if (firestoreId.isEmpty) {
+      throw Exception('Jadwal tidak ditemukan untuk diperbarui.');
+    }
+    final withId = updated.copyWith(firestoreId: firestoreId);
+    await _firestore.updateFeedingSchedule(withId);
+  }
+
+  /// Menghapus jadwal.
+  Future<void> deleteSchedule(dynamic id) async {
+    String? firestoreId;
+    if (id is String) {
+      firestoreId = id;
+    } else if (id is int) {
+      final list = state.valueOrNull ?? [];
+      for (final s in list) {
+        if (s.id == id) {
+          firestoreId = s.firestoreId;
+          break;
+        }
+      }
+    }
+    if (firestoreId != null) {
+      await _firestore.deleteFeedingSchedule(firestoreId);
+    }
   }
 
   /// Mengembalikan daftar jadwal pakan (feed_type == 'pakan') yang tersimpan.
@@ -92,12 +106,11 @@ class ScheduleNotifier extends StateNotifier<ScheduleState> {
     final active = all.where((s) => s.isActive).toList();
     if (active.isEmpty) return null;
 
-    // Urutkan berdasarkan waktu dan cari yang paling dekat dengan sekarang
     final now = DateTime.now();
     final nowMinutes = now.hour * 60 + now.minute;
 
     FeedingScheduleModel? next;
-    int minDiff = 1441; // lebih dari 24 jam (sentinel value)
+    int minDiff = 1441;
 
     for (final s in active) {
       final parts = s.time.split(':');
@@ -105,9 +118,8 @@ class ScheduleNotifier extends StateNotifier<ScheduleState> {
       final schedMinutes =
           int.tryParse(parts[0])! * 60 + int.tryParse(parts[1])!;
 
-      // Selisih dalam menit; jika jadwal sudah lewat hari ini, hitung untuk besok
       var diff = schedMinutes - nowMinutes;
-      if (diff < 0) diff += 1440; // tambahkan 24 jam
+      if (diff < 0) diff += 1440;
 
       if (diff < minDiff) {
         minDiff = diff;
@@ -118,3 +130,4 @@ class ScheduleNotifier extends StateNotifier<ScheduleState> {
     return next;
   }
 }
+

@@ -14,7 +14,6 @@
 // FLOW: Tab navigasi bawah -> masing-masing halaman
 // DATA: Menggunakan Riverpod untuk mengambil data real-time dan status luring alat.
 
-import 'dart:async';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
@@ -36,26 +35,17 @@ class DashboardScreen extends ConsumerStatefulWidget {
 
 class _DashboardScreenState extends ConsumerState<DashboardScreen> {
   final int _currentNavIndex = 0;
-  Timer? _pollingTimer;
 
   @override
   void initState() {
     super.initState();
-    // Setup timer polling real-time setiap 30 detik
-    _pollingTimer = Timer.periodic(const Duration(seconds: 30), (timer) {
-      if (mounted) {
-        ref.invalidate(waterTankProvider);
-        ref.invalidate(solarLatestDashboardProvider);
-        ref.invalidate(deviceStatusProvider);
-      }
-    });
   }
 
   @override
   void dispose() {
-    _pollingTimer?.cancel();
     super.dispose();
   }
+
 
   void _onNavItemTapped(int index) {
     if (index == _currentNavIndex) return;
@@ -323,41 +313,47 @@ class _DashboardScreenState extends ConsumerState<DashboardScreen> {
         const SizedBox(width: 12),
 
         // Nama Farm + Greeting
-        Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            const Text(
-              AppStrings.dashboardFarmName,
-              style: TextStyle(
-                fontSize: 12,
-                color: AppColors.textSecondary,
-                fontFamily: AppAssets.fontFamily,
-              ),
-            ),
-            const SizedBox(height: 2),
-            RichText(
-              text: TextSpan(
-                style: const TextStyle(
-                  fontSize: 16,
-                  fontWeight: FontWeight.w700,
+        Expanded(
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              const Text(
+                AppStrings.dashboardFarmName,
+                style: TextStyle(
+                  fontSize: 12,
+                  color: AppColors.textSecondary,
                   fontFamily: AppAssets.fontFamily,
-                  color: AppColors.textPrimary,
                 ),
-                children: [
-                  const TextSpan(text: '${AppStrings.dashboardGreeting} '),
-                  TextSpan(
-                    text: userName,
-                    style: const TextStyle(
-                      color: AppColors.textAccentRed,
-                    ),
-                  ),
-                ],
+                maxLines: 1,
+                overflow: TextOverflow.ellipsis,
               ),
-            ),
-          ],
+              const SizedBox(height: 2),
+              RichText(
+                maxLines: 1,
+                overflow: TextOverflow.ellipsis,
+                text: TextSpan(
+                  style: const TextStyle(
+                    fontSize: 16,
+                    fontWeight: FontWeight.w700,
+                    fontFamily: AppAssets.fontFamily,
+                    color: AppColors.textPrimary,
+                  ),
+                  children: [
+                    const TextSpan(text: '${AppStrings.dashboardGreeting} '),
+                    TextSpan(
+                      text: userName,
+                      style: const TextStyle(
+                        color: AppColors.textAccentRed,
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+            ],
+          ),
         ),
 
-        const Spacer(),
+        const SizedBox(width: 8),
 
         // Tombol notifikasi - menuju halaman Notifikasi
         IconButton(

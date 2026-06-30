@@ -1,98 +1,88 @@
-# PROJECT REQUIREMENTS — IoT Monitoring Pengabdian Masyarakat
+# PROJECT REQUIREMENTS — IoT Monitoring Pengabdian Masyarakat (Edisi Firebase)
 
 ## Ringkasan Proyek
 
-Sistem monitoring IoT terintegrasi yang dirancang untuk program pengabdian masyarakat. Perangkat keras menggunakan panel surya sebagai sumber daya. Aplikasi memungkinkan warga dan pengelola untuk memantau kondisi tangki air, metrik kelistrikan panel surya, serta mengatur jadwal pakan ternak secara real-time melalui protokol MQTT.
+Sistem monitoring IoT terintegrasi yang dirancang untuk program pengabdian masyarakat. Perangkat keras menggunakan panel surya sebagai sumber daya. Sistem ini digerakkan oleh **Firebase** untuk autentikasi pengguna, penyimpanan data sensor secara real-time, manajemen jadwal pakan, dan log notifikasi.
 
 ---
 
 ## Arsitektur Sistem
 
 ```
-[Perangkat IoT (ESP32/Arduino)]
+[Perangkat IoT (ESP32)]
         |
-        | MQTT Protocol
+        | HTTPS REST API (PUT/GET/POST)
         v
-[MQTT Broker (Mosquitto / HiveMQ)]
-        |
-        v
-[Go Fiber Backend]
-   |           |
-   v           v
-[PostgreSQL] [REST API]
-               |
-               v
-         [Flutter App]
+[Firebase Realtime Database]  ←──────────────────────┐
+        |                                             |
+        | Stream Real-Time (onValue Listener)    [Cloud Firestore]
+        v                                             |
+  [Flutter App] ────── Firebase Auth ─────────────────┘
+                    (Jadwal Pakan, Notifikasi, Akun)
 ```
 
 ---
 
 ## Stack Teknologi
 
-| Layer      | Teknologi                    | Versi Target  |
-|------------|------------------------------|---------------|
-| Frontend   | Flutter (Mobile App)         | >= 3.x        |
-| Backend    | Go + Fiber Framework         | Go >= 1.21    |
-| Database   | PostgreSQL                   | >= 14         |
-| IoT Proto  | MQTT (paho.mqtt.golang)      | v1.x          |
-| State Mgmt | Provider / Riverpod          | TBD           |
-| HTTP Client| Dio                          | >= 5.x        |
+| Layer      | Teknologi                    | Keterangan |
+|------------|------------------------------|------------|
+| Frontend   | Flutter (Mobile Android)     | SDK >= 3.x |
+| Database   | Firebase Realtime Database   | Untuk data sensor real-time |
+| Database   | Cloud Firestore              | Untuk jadwal pakan & notifikasi |
+| Auth       | Firebase Authentication      | Login & Register |
+| IoT Proto  | HTTPS REST API               | Komunikasi ESP32 -> Firebase |
+| State Mgmt | flutter_riverpod             | v2.5.1 |
 
 ---
 
-## Topik MQTT
+## Model Data Realtime Database
 
-| Sensor / Kontrol | Topik MQTT                             | Arah           |
-|------------------|----------------------------------------|----------------|
-| Tangki Air       | `iot/pengabdian/sensor/tangki`         | Device -> App  |
-| Panel Surya      | `iot/pengabdian/sensor/listrik`        | Device -> App  |
-| Jadwal Pakan     | `iot/pengabdian/kontrol/pakan`         | App -> Device  |
+### 1. Tangki Air (`/sensors/water_tank`)
+```json
+{
+  "current_height_cm": 45.0,
+  "max_capacity_cm": 55.0,
+  "status": "AMAN",
+  "recorded_at": 1719662400000
+}
+```
+
+### 2. Panel Surya / Listrik (`/sensors/power`)
+```json
+{
+  "voltage": 12.4,
+  "current": 2.5,
+  "power": 31.0,
+  "recorded_at": 1719662400000
+}
+```
+
+### 3. Kontrol Jadwal Pakan (`/kontrol/jam_pakan`)
+```json
+[7, 16]
+```
 
 ---
 
-## Kontrak Data JSON Payload
+## Model Data Firestore
 
-### 1. Tangki Air (Subscribe: `iot/pengabdian/sensor/tangki`)
-```json
-{
-  "water_tank": {
-    "current_height_cm": 45,
-    "max_capacity_cm": 55,
-    "status": "Aman"
-  }
-}
-```
+### 1. Koleksi `/users/{uid}`
+- `name`: String
+- `email`: String
+- `created_at`: Timestamp
 
-### 2. Panel Surya / Listrik (Subscribe: `iot/pengabdian/sensor/listrik`)
-```json
-{
-  "solar_metrics": {
-    "voltage": 12.4,
-    "current": 2.5,
-    "power": 31.0
-  }
-}
-```
+### 2. Koleksi `/feeding_schedules/{id}`
+- `label`: String
+- `time`: String ("07:00")
+- `feed_type`: String ("pakan")
+- `is_active`: Boolean
 
-### 3. Jadwal Pakan (Publish: `iot/pengabdian/kontrol/pakan`)
-```json
-{
-  "feeding_schedules": [
-    {"id": 1, "time": "08:00", "is_active": true},
-    {"id": 2, "time": "17:00", "is_active": false}
-  ]
-}
-```
-
-### 4. Pengguna / Autentikasi (REST API)
-```json
-{
-  "user": {
-    "email": "warga@gmail.com",
-    "password": "warga1234"
-  }
-}
-```
+### 3. Koleksi `/notifications/{id}`
+- `title`: String
+- `body`: String
+- `is_read`: Boolean
+- `created_at`: Timestamp
 
 ---
 
@@ -100,67 +90,39 @@ Sistem monitoring IoT terintegrasi yang dirancang untuk program pengabdian masya
 
 ### 1. Splash Screen
 - Menampilkan background gambar dari: **`assets/images/splash_bg.png`**
-- Timer otomatis 3 detik, kemudian routing ke halaman Login
+- Timer otomatis 3 detik, kemudian routing ke Dashboard jika sudah login, atau Login jika belum.
 - File: `lib/presentation/screens/auth/splash_screen.dart`
 
 ### 2. Autentikasi — Login
-- Form input Email dan Password
-- Tombol "Masuk" sementara diarahkan ke Dashboard (tanpa validasi backend)
-- Link navigasi ke halaman Sign Up
+- Form input Email dan Password menggunakan Firebase Auth
+- Navigasi otomatis ke Dashboard setelah sukses
 - File: `lib/presentation/screens/auth/login_screen.dart`
 
 ### 3. Autentikasi — Sign Up
-- Form input: Nama Lengkap, Email, Password
-- Tombol "Daftar"
-- Link navigasi kembali ke Login
+- Form input: Nama Lengkap, Email, Password via Firebase Auth + simpan profil ke Firestore
 - File: `lib/presentation/screens/auth/signup_screen.dart`
 
 ### 4. Dashboard
 - Header: avatar + nama "Kombong Gen Z" + greeting "Selamat Datang, User"
 - Kartu Water Tank: visualisasi level air bertingkat (gradient merah-kuning-hijau), nilai cm, status
-- Kartu Next Schedule: menampilkan jadwal pakan berikutnya (PAKAN AYAM & MINUM AYAM)
+- Kartu Next Schedule: menampilkan jadwal pakan berikutnya (PAKAN AYAM)
 - Kartu Live Energy: menampilkan CURRENT (A), VOLTAGE (V), POWER (W) dengan mini sparkline chart
 - Bottom Navigation Bar: Dashboard, Jadwal Pakan, Daya, Profil
 - File: `lib/presentation/screens/dashboard/dashboard_screen.dart`
 
-### 5. Jadwal Pakan (Placeholder)
-- Akan berisi daftar jadwal pakan yang dapat diatur (CRUD)
-- Integrasi publish MQTT ke topik `iot/pengabdian/kontrol/pakan`
+### 5. Jadwal Pakan
+- Daftar jadwal pakan (CRUD) langsung ke Firestore
+- Sinkronisasi otomatis jam aktif pakan ke Realtime Database (`/kontrol/jam_pakan`) untuk dibaca oleh ESP32
 - File: `lib/presentation/screens/schedule/schedule_screen.dart`
 
-### 6. Daya / Power (Placeholder)
-- Akan berisi grafik historis tegangan, arus, dan daya dari panel surya
-- Data historis dari PostgreSQL via REST API
+### 6. Daya / Power
+- Menampilkan grafik historis dinamis tegangan, arus, dan daya dari panel surya
 - File: `lib/presentation/screens/power/power_screen.dart`
 
-### 7. Profil (Placeholder)
-- Informasi akun pengguna
+### 7. Profil
+- Informasi akun pengguna & Ubah Password
 - Tombol Logout
 - File: `lib/presentation/screens/profile/profile_screen.dart`
-
----
-
-## Alur Kerja Pengembangan
-
-### Fase 1 (SEKARANG): Frontend Flutter
-- Master scaffolding struktur proyek
-- Implementasi tema dan konstanta
-- Kode UI lengkap: Splash, Login, Sign Up, Dashboard
-- Placeholder halaman: Schedule, Power, Profile
-
-### Fase 2 (MENUNGGU Hardware IoT Siap): Backend Go Fiber
-- REST API untuk autentikasi (register, login, JWT)
-- REST API untuk data historis sensor (read dari PostgreSQL)
-- MQTT client untuk subscribe sensor dan publish kontrol pakan
-- Sinkronisasi data real-time ke Flutter via polling atau WebSocket
-
----
-
-## Catatan Penting
-
-> **SPLASH SCREEN**: Menggunakan aset gambar dari path `assets/images/splash_bg.png`.
-> File aset ini WAJIB ditempatkan di direktori tersebut sebelum build.
-> Path sudah didaftarkan di `pubspec.yaml` pada bagian `flutter.assets`.
 
 ---
 
@@ -169,70 +131,39 @@ Sistem monitoring IoT terintegrasi yang dirancang untuk program pengabdian masya
 ```
 iot_pengabdian_masyarakat/
 ├── PROJECT_REQUIREMENTS.md
-├── flutter_app/
-│   ├── pubspec.yaml
-│   ├── assets/
-│   │   ├── images/
-│   │   │   └── splash_bg.png          <- WAJIB ada sebelum build
-│   │   └── fonts/
-│   └── lib/
-│       ├── main.dart
-│       ├── core/
-│       │   ├── constants/
-│       │   │   └── app_constants.dart
-│       │   ├── theme/
-│       │   │   └── app_theme.dart
-│       │   ├── routes/
-│       │   │   └── app_routes.dart
-│       │   └── utils/
-│       │       └── app_utils.dart
-│       ├── data/
-│       │   ├── models/
-│       │   │   ├── water_tank_model.dart
-│       │   │   ├── solar_metrics_model.dart
-│       │   │   ├── feeding_schedule_model.dart
-│       │   │   └── user_model.dart
-│       │   └── services/
-│       │       ├── api_service.dart
-│       │       └── mqtt_service.dart
-│       └── presentation/
-│           ├── screens/
-│           │   ├── auth/
-│           │   │   ├── splash_screen.dart
-│           │   │   ├── login_screen.dart
-│           │   │   └── signup_screen.dart
-│           │   ├── dashboard/
-│           │   │   └── dashboard_screen.dart
-│           │   ├── schedule/
-│           │   │   └── schedule_screen.dart
-│           │   ├── power/
-│           │   │   └── power_screen.dart
-│           │   └── profile/
-│           │       └── profile_screen.dart
-│           └── widgets/
-│               ├── common/
-│               │   └── custom_text_field.dart
-│               └── dashboard/
-│                   ├── water_tank_card.dart
-│                   ├── schedule_card.dart
-│                   └── energy_card.dart
-└── go_backend/
-    ├── go.mod
-    ├── cmd/
-    │   └── server/
-    │       └── main.go
-    └── internal/
-        ├── config/
-        │   └── config.go
-        ├── database/
-        │   └── postgres.go
-        ├── mqtt/
-        │   └── mqtt_client.go
-        ├── handlers/
-        │   ├── auth_handler.go
-        │   └── sensor_handler.go
-        ├── models/
-        │   └── models.go
-        └── routes/
-            └── routes.go
+├── IOT_REQUIREMENTS.md
+├── esp32_iot.ino
+└── flutter_app/
+    ├── pubspec.yaml
+    ├── assets/
+    │   └── images/
+    │       ├── splash_bg.png
+    │       └── avatar_default.png
+    └── lib/
+        ├── main.dart
+        ├── core/
+        │   ├── constants/
+        │   │   └── app_constants.dart
+        │   ├── theme/
+        │   │   └── app_theme.dart
+        │   ├── routes/
+        │   │   └── app_routes.dart
+        │   └── providers/
+        │       ├── auth_provider.dart
+        │       ├── dashboard_provider.dart
+        │       ├── schedule_provider.dart
+        │       ├── notification_provider.dart
+        │       ├── power_provider.dart
+        │       └── water_alert_provider.dart
+        ├── data/
+        │   ├── models/
+        │   │   ├── water_tank_model.dart
+        │   │   ├── solar_metrics_model.dart
+        │   │   ├── feeding_schedule_model.dart
+        │   │   └── user_model.dart
+        │   └── services/
+        │       ├── firebase_auth_service.dart
+        │       ├── firebase_database_service.dart
+        │       └── firestore_service.dart
+        └── presentation/
 ```

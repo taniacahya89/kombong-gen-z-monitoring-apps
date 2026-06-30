@@ -1,62 +1,44 @@
 // lib/data/models/feeding_schedule_model.dart
 //
-// Model data untuk jadwal pakan ternak.
-//
-// Kontrak JSON dari backend:
-// {
-//   "id": 1,
-//   "label": "Pakan Pagi",
-//   "time": "07:00",
-//   "feed_type": "pakan",
-//   "is_active": true,
-//   "created_at": "2025-06-17T00:00:00Z",
-//   "updated_at": "2025-06-17T00:00:00Z"
-// }
-//
-// Field `feed_type` membedakan kategori:
-//   - "pakan": jadwal pemberian pakan ayam
-//   - "minum": jadwal pemberian minum ayam
+// Model jadwal pakan, kompatibel dengan Cloud Firestore.
+// Menggunakan firestoreId (String) sebagai identifier utama, bukan int.
+
+import 'package:cloud_firestore/cloud_firestore.dart';
 
 class FeedingScheduleModel {
-  final int id;
+  final String firestoreId; // Firestore document ID
   final String label;
-  final String time;
-  final String feedType; // "pakan" atau "minum"
+  final String time;        // format "HH:MM"
+  final String feedType;    // "pakan" atau "minum"
   final bool isActive;
 
   const FeedingScheduleModel({
-    required this.id,
+    this.firestoreId = '',
     required this.label,
     required this.time,
     required this.feedType,
     required this.isActive,
+    dynamic id, // parameter warisan (legacy) untuk kompatibilitas UI
   });
 
-  // Mengembalikan true jika ini adalah jadwal pakan (bukan minum).
+  // Untuk kompatibilitas dengan kode UI yang masih pakai int id
+  // (akan dihapus setelah refactor screen selesai)
+  int get id => firestoreId.hashCode;
+
   bool get isPakan => feedType == 'pakan';
 
-  factory FeedingScheduleModel.fromJson(Map<String, dynamic> json) {
+  factory FeedingScheduleModel.fromFirestore(DocumentSnapshot doc) {
+    final data = doc.data() as Map<String, dynamic>;
     return FeedingScheduleModel(
-      id: json['id'] as int,
-      label: json['label'] as String? ?? 'Jadwal Pakan',
-      time: json['time'] as String,
-      feedType: json['feed_type'] as String? ?? 'pakan',
-      isActive: json['is_active'] as bool? ?? false,
+      firestoreId: doc.id,
+      label: data['label'] as String? ?? 'Jadwal Pakan',
+      time: data['time'] as String? ?? '07:00',
+      feedType: data['feed_type'] as String? ?? 'pakan',
+      isActive: data['is_active'] as bool? ?? false,
     );
   }
 
-  Map<String, dynamic> toJson() {
-    return {
-      'id': id,
-      'label': label,
-      'time': time,
-      'feed_type': feedType,
-      'is_active': isActive,
-    };
-  }
-
-  // Payload untuk endpoint POST (buat jadwal baru)
-  Map<String, dynamic> toCreatePayload() {
+  Map<String, dynamic> toFirestore() {
     return {
       'label': label,
       'time': time,
@@ -65,25 +47,19 @@ class FeedingScheduleModel {
     };
   }
 
-  // Payload untuk endpoint PUT (update jadwal)
-  Map<String, dynamic> toUpdatePayload() {
-    return {
-      'label': label,
-      'time': time,
-      'feed_type': feedType,
-      'is_active': isActive,
-    };
-  }
+  // Alias untuk backward compatibility dengan provider
+  Map<String, dynamic> toCreatePayload() => toFirestore();
+  Map<String, dynamic> toUpdatePayload() => toFirestore();
 
   FeedingScheduleModel copyWith({
-    int? id,
+    String? firestoreId,
     String? label,
     String? time,
     String? feedType,
     bool? isActive,
   }) {
     return FeedingScheduleModel(
-      id: id ?? this.id,
+      firestoreId: firestoreId ?? this.firestoreId,
       label: label ?? this.label,
       time: time ?? this.time,
       feedType: feedType ?? this.feedType,
@@ -92,7 +68,6 @@ class FeedingScheduleModel {
   }
 
   @override
-  String toString() {
-    return 'FeedingScheduleModel(id: $id, label: $label, time: $time, feedType: $feedType, isActive: $isActive)';
-  }
+  String toString() =>
+      'FeedingScheduleModel(id: $firestoreId, label: $label, time: $time, feedType: $feedType, isActive: $isActive)';
 }

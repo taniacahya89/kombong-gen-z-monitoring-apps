@@ -29,6 +29,17 @@ class SolarMetricsModel {
     this.recordedAt,
   });
 
+  factory SolarMetricsModel.fromRealtimeDb(Map<String, dynamic> data) {
+    return SolarMetricsModel(
+      voltage: (data['voltage'] as num).toDouble(),
+      current: (data['current'] as num).toDouble(),
+      power: (data['power'] as num).toDouble(),
+      recordedAt: data['recorded_at'] != null
+          ? DateTime.fromMillisecondsSinceEpoch(data['recorded_at'] as int)
+          : null,
+    );
+  }
+
   factory SolarMetricsModel.fromJson(Map<String, dynamic> json) {
     // Mendukung dua format response:
     // 1. Format langsung dari database (key flat: voltage, current, power)

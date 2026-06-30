@@ -1,0 +1,29 @@
+{
+  "project_info": {
+    "project_number": "598204271499",
+    "project_id": "kandang-ayam-36d57",
+    "storage_bucket": "kandang-ayam-36d57.firebasestorage.app"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:598204271499:android:8f51224e8c50df5b347d8e",
+        "android_client_info": {
+          "package_name": "com.tania.kandangayam"
+        }
+      },
+      "oauth_client": [],
+      "api_key": [
+        {
+          "current_key": "AIzaSyBIWwgXhuv14lij_4nu_y5XBMzgTjcl-Vk"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": []
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}

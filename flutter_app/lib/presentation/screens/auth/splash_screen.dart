@@ -36,6 +36,8 @@ class _SplashScreenState extends ConsumerState<SplashScreen>
   late AnimationController _animController;
   late Animation<double> _fadeAnimation;
   late Animation<Offset> _slideAnimation;
+  bool _timerElapsed = false;
+  bool _navigated = false;
 
   @override
   void initState() {
@@ -67,28 +69,43 @@ class _SplashScreenState extends ConsumerState<SplashScreen>
 
   void _startTimer() {
     // Tunggu authStateProvider selesai inisialisasi (cek token tersimpan),
-    // lalu arahkan ke halaman yang tepat.
+    // lalu arahkan ke halaman yang tepat setelah durasi minimum splash terpenuhi.
     _timer = Timer(AppDuration.splashTimer, () {
       if (!mounted) return;
-      final authState = ref.read(authStateProvider);
-      // Jika state masih loading, tetap tunggu — jangan paksa navigasi
-      authState.whenOrNull(
-        data: (user) {
-          if (user != null) {
-            // Token valid: langsung ke dashboard tanpa melalui login
-            context.goNamed(AppRouteNames.dashboard);
-          } else {
-            context.goNamed(AppRouteNames.login);
-          }
-        },
-        error: (_, __) => context.goNamed(AppRouteNames.login),
-      );
+      setState(() {
+        _timerElapsed = true;
+      });
+      _checkNavigation();
     });
+  }
+
+  void _checkNavigation() {
+    if (_navigated || !_timerElapsed) return;
+
+    final authState = ref.read(authStateProvider);
+    if (authState is AsyncLoading) {
+      // Tunggu hingga loading selesai, navigasi dipicu oleh ref.listen di build
+      return;
+    }
+
+    _navigated = true;
+    authState.when(
+      data: (user) {
+        if (user != null) {
+          context.goNamed(AppRouteNames.dashboard);
+        } else {
+          context.goNamed(AppRouteNames.login);
+        }
+      },
+      error: (_, __) => context.goNamed(AppRouteNames.login),
+      loading: () {}, // Sudah ditangani oleh pengecekan AsyncLoading di atas
+    );
   }
 
   void _navigateToLogin() {
     _timer?.cancel();
-    // Tombol "Mulai" selalu ke login — biarkan login screen yang handle redirect
+    if (_navigated) return;
+    _navigated = true;
     context.goNamed(AppRouteNames.login);
   }
 
@@ -101,6 +118,13 @@ class _SplashScreenState extends ConsumerState<SplashScreen>
 
   @override
   Widget build(BuildContext context) {
+    // Dengarkan status authStateProvider agar langsung merespon begitu selesai loading.
+    ref.listen<AuthState>(authStateProvider, (previous, next) {
+      if (next is! AsyncLoading) {
+        _checkNavigation();
+      }
+    });
+
     return Scaffold(
       body: Stack(
         fit: StackFit.expand,

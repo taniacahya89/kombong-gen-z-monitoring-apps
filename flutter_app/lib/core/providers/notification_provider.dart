@@ -1,15 +1,12 @@
 // lib/core/providers/notification_provider.dart
 //
-// State management untuk riwayat notifikasi sistem.
-//
-// Provider:
-//   - notificationProvider: StateNotifierProvider yang menyimpan daftar
-//     notifikasi dan mendukung operasi mark-as-read (individual & bulk).
+// State management untuk riwayat notifikasi sistem menggunakan Cloud Firestore.
 
+import 'dart:async';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../data/models/notification_model.dart';
-import '../../data/services/api_service.dart';
-import 'auth_provider.dart';
+import '../../data/services/firestore_service.dart';
+import 'schedule_provider.dart';
 
 // State gabungan: list notifikasi dan jumlah yang belum dibaca.
 class NotificationState {
@@ -42,52 +39,64 @@ class NotificationState {
 
 final notificationProvider =
     StateNotifierProvider<NotificationNotifier, NotificationState>((ref) {
-  final service = ref.watch(authServiceProvider);
+  final service = ref.watch(firestoreServiceProvider);
   return NotificationNotifier(service);
 });
 
 class NotificationNotifier extends StateNotifier<NotificationState> {
-  final ApiService _api;
+  final FirestoreService _firestore;
+  StreamSubscription? _subscription;
 
-  NotificationNotifier(this._api) : super(const NotificationState(isLoading: true)) {
+  NotificationNotifier(this._firestore) : super(const NotificationState(isLoading: true)) {
     loadNotifications();
   }
 
-  /// Mengambil daftar notifikasi dari backend.
-  Future<void> loadNotifications() async {
-    state = state.copyWith(isLoading: true, error: null);
-    try {
-      final result = await _api.getNotifications();
-      state = NotificationState(
-        notifications: result['notifications'] as List<NotificationModel>,
-        // Backend mengembalikan -1 jika query count gagal. Normalize ke 0
-        // agar UI tidak menampilkan badge dengan angka negatif.
-        unreadCount: ((result['unread_count'] as int?) ?? 0).clamp(0, 9999),
-        isLoading: false,
-      );
-    } catch (e) {
-      state = state.copyWith(isLoading: false, error: e.toString());
-    }
+  @override
+  void dispose() {
+    _subscription?.cancel();
+    super.dispose();
   }
 
-  /// Menandai satu notifikasi sebagai sudah dibaca dan memperbarui state lokal.
-  Future<void> markRead(int id) async {
-    try {
-      await _api.markNotificationRead(id);
-      final updated = state.notifications.map((n) {
-        return n.id == id ? n.copyWith(isRead: true) : n;
-      }).toList();
-      final newUnread = updated.where((n) => !n.isRead).length;
-      state = state.copyWith(notifications: updated, unreadCount: newUnread);
-    } catch (_) {}
+  /// Memulai sinkronisasi data real-time dengan Cloud Firestore.
+  Future<void> loadNotifications() async {
+    state = state.copyWith(isLoading: true, error: null);
+    _subscription?.cancel();
+    _subscription = _firestore.watchNotifications().listen(
+      (notifications) {
+        final unreadCount = notifications.where((n) => !n.isRead).length;
+        state = NotificationState(
+          notifications: notifications,
+          unreadCount: unreadCount,
+          isLoading: false,
+        );
+      },
+      onError: (err, stack) {
+        state = state.copyWith(isLoading: false, error: err.toString());
+      },
+    );
+  }
+
+  /// Menandai satu notifikasi sebagai sudah dibaca.
+  Future<void> markRead(dynamic id) async {
+    String? firestoreId;
+    if (id is String) {
+      firestoreId = id;
+    } else if (id is int) {
+      for (final n in state.notifications) {
+        if (n.id == id) {
+          firestoreId = n.firestoreId;
+          break;
+        }
+      }
+    }
+    if (firestoreId != null) {
+      await _firestore.markNotificationRead(firestoreId);
+    }
   }
 
   /// Menandai semua notifikasi sebagai sudah dibaca.
   Future<void> markAllRead() async {
-    try {
-      await _api.markAllNotificationsRead();
-      final updated = state.notifications.map((n) => n.copyWith(isRead: true)).toList();
-      state = state.copyWith(notifications: updated, unreadCount: 0);
-    } catch (_) {}
+    await _firestore.markAllNotificationsRead();
   }
 }
+

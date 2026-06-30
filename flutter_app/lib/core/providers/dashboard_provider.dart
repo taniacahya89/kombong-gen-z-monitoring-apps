@@ -1,58 +1,112 @@
 // lib/core/providers/dashboard_provider.dart
 //
-// Provider khusus Dashboard yang mengelola polling data real-time.
-//
-// Arsitektur untuk rebuild selektif:
-//
-//   dashboard_provider.dart memisahkan state menjadi tiga provider independen:
-//
-//   1. waterTankProvider  - hanya widget kartu tangki air yang memanggil ini
-//   2. solarLatestProvider - hanya widget kartu energi yang memanggil ini
-//   3. deviceStatusProvider - hanya widget banner offline yang memanggil ini
-//
-//   Setiap provider adalah FutureProvider terpisah. Saat polling memperbarui
-//   satu provider (misal solar), hanya widget yang watch(solarLatestProvider)
-//   yang di-rebuild. Widget lain seperti kartu tangki air tidak tersentuh.
-//
-// Polling real-time:
-//   Dilakukan via Timer.periodic di DashboardScreen dengan interval 30 detik.
-//   Timer memanggil ref.invalidate(providerX) yang memicu FutureProvider
-//   untuk fetch ulang data dari API - tanpa setState() atau full page rebuild.
-//
-// Status perangkat:
-//   deviceStatusProvider memanggil endpoint /sensors/status setiap polling.
-//   Jika status "offline", DashboardScreen menampilkan banner peringatan.
+// Provider khusus Dashboard yang mengelola data sensor realtime dari MQTT.
+// Menggantikan polling/listening Firebase Realtime Database sebelumnya.
 
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:mqtt_client/mqtt_client.dart';
 import '../../data/models/water_tank_model.dart';
 import '../../data/models/solar_metrics_model.dart';
-
-import 'auth_provider.dart';
+import '../../core/utils/app_utils.dart';
+import 'sensor_provider.dart';
 
 // ---------------------------------------------------------------------------
 // WATER TANK PROVIDER
-// Hanya widget WaterTankCard yang watch provider ini.
+// Memetakan SensorState MQTT ke WaterTankModel
 // ---------------------------------------------------------------------------
-final waterTankProvider = FutureProvider<WaterTankModel>((ref) async {
-  final service = ref.watch(authServiceProvider);
-  return service.getWaterTankLatest();
+final waterTankProvider = Provider<AsyncValue<WaterTankModel>>((ref) {
+  final sensorStateAsync = ref.watch(sensorStateProvider);
+  return sensorStateAsync.map(
+    data: (asyncData) {
+      final state = asyncData.value;
+      return AsyncValue.data(WaterTankModel(
+        currentHeightCm: state.distance,
+        maxCapacityCm: 55.0, // Kapasitas tangki air tetap sesuai baseline
+        status: AppUtils.getWaterTankStatus(state.distance / 55.0),
+      ));
+    },
+    error: (asyncError) => AsyncValue.error(asyncError.error, asyncError.stackTrace),
+    loading: (_) {
+      // Menggunakan state cache terakhir dari repo jika ada
+      final repo = ref.read(sensorRepositoryProvider);
+      if (repo.currentState.distance > 0) {
+        return AsyncValue.data(WaterTankModel(
+          currentHeightCm: repo.currentState.distance,
+          maxCapacityCm: 55.0,
+          status: AppUtils.getWaterTankStatus(repo.currentState.distance / 55.0),
+        ));
+      }
+      return const AsyncValue.loading();
+    },
+  );
 });
 
 // ---------------------------------------------------------------------------
 // SOLAR / POWER LATEST PROVIDER
-// Hanya widget EnergyCard yang watch provider ini.
+// Memetakan SensorState MQTT ke SolarMetricsModel
 // ---------------------------------------------------------------------------
-final solarLatestDashboardProvider = FutureProvider<SolarMetricsModel>((ref) async {
-  final service = ref.watch(authServiceProvider);
-  return service.getSolarMetricsLatest();
+final solarLatestDashboardProvider = Provider<AsyncValue<SolarMetricsModel>>((ref) {
+  final sensorStateAsync = ref.watch(sensorStateProvider);
+  return sensorStateAsync.map(
+    data: (asyncData) {
+      final state = asyncData.value;
+      return AsyncValue.data(SolarMetricsModel(
+        voltage: state.voltage,
+        current: state.currentAmpere,
+        power: state.power,
+        recordedAt: state.lastUpdated,
+      ));
+    },
+    error: (asyncError) => AsyncValue.error(asyncError.error, asyncError.stackTrace),
+    loading: (_) {
+      final repo = ref.read(sensorRepositoryProvider);
+      if (repo.currentState.voltage > 0 || repo.currentState.currentMilliAmpere > 0) {
+        return AsyncValue.data(SolarMetricsModel(
+          voltage: repo.currentState.voltage,
+          current: repo.currentState.currentAmpere,
+          power: repo.currentState.power,
+          recordedAt: repo.currentState.lastUpdated,
+        ));
+      }
+      return const AsyncValue.loading();
+    },
+  );
 });
 
 // ---------------------------------------------------------------------------
 // DEVICE STATUS PROVIDER
-// Mengembalikan string status: "online", "offline", "no_data", atau
-// "server_mqtt_disconnected". Hanya banner peringatan yang watch ini.
+// Menampilkan status koneksi broker MQTT ("online" atau "server_mqtt_disconnected").
 // ---------------------------------------------------------------------------
-final deviceStatusProvider = FutureProvider<Map<String, dynamic>>((ref) async {
-  final service = ref.watch(authServiceProvider);
-  return service.getDeviceStatus();
+final deviceStatusProvider = Provider<AsyncValue<Map<String, dynamic>>>((ref) {
+  final connectionStateAsync = ref.watch(mqttConnectionStateProvider);
+  return connectionStateAsync.map(
+    data: (asyncData) {
+      final state = asyncData.value;
+      if (state == MqttConnectionState.connected) {
+        return const AsyncValue.data({
+          'status': 'online',
+          'message': 'Terhubung ke server MQTT.',
+        });
+      } else {
+        return const AsyncValue.data({
+          'status': 'server_mqtt_disconnected',
+          'message': 'Koneksi dengan server MQTT terputus.',
+        });
+      }
+    },
+    error: (asyncError) => AsyncValue.error(asyncError.error, asyncError.stackTrace),
+    loading: (_) {
+      final service = ref.read(mqttServiceProvider);
+      if (service.connectionState == MqttConnectionState.connected) {
+        return const AsyncValue.data({
+          'status': 'online',
+          'message': 'Terhubung ke server MQTT.',
+        });
+      }
+      return const AsyncValue.data({
+        'status': 'server_mqtt_disconnected',
+        'message': 'Menghubungkan ke server MQTT...',
+      });
+    },
+  );
 });

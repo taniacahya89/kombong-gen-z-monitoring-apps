@@ -18,6 +18,7 @@ import 'package:go_router/go_router.dart';
 import 'package:intl/intl.dart';
 
 import '../../../core/constants/app_constants.dart';
+import '../../../core/routes/app_routes.dart';
 import '../../../core/providers/notification_provider.dart';
 import '../../../data/models/notification_model.dart';
 
@@ -60,7 +61,13 @@ class NotificationScreen extends ConsumerWidget {
         leading: IconButton(
           icon: const Icon(Icons.arrow_back_ios_new_rounded,
               color: AppColors.textPrimary, size: 20),
-          onPressed: () => Navigator.pop(context),
+          onPressed: () {
+            if (context.canPop()) {
+              context.pop();
+            } else {
+              context.goNamed(AppRouteNames.dashboard);
+            }
+          },
         ),
         actions: [
           if (state.unreadCount > 0)

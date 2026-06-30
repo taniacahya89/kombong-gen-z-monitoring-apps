@@ -1,32 +1,14 @@
 // lib/core/providers/auth_provider.dart
 //
-// State management untuk autentikasi pengguna menggunakan Riverpod.
-//
-// Arsitektur:
-//   - authServiceProvider: Provider global yang menyediakan instance ApiService.
-//     Bersifat singleton sehingga interceptor Dio hanya didaftarkan sekali.
-//
-//   - authStateProvider: StateNotifierProvider yang mengelola state autentikasi
-//     (loading, sukses dengan UserModel, error). Menyimpan dan membaca token
-//     dari secure storage via ApiService.
-//
-//   - authProvider: Alias mudah baca untuk authStateProvider.
-//
-// Penggunaan:
-//   final auth = ref.watch(authProvider);
-//   auth.when(
-//     data: (user) => user != null ? Dashboard() : Login(),
-//     loading: () => LoadingScreen(),
-//     error: (e, _) => ErrorWidget(e.toString()),
-//   );
+// State management untuk autentikasi pengguna menggunakan Riverpod dan Firebase.
 
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../data/models/user_model.dart';
-import '../../data/services/api_service.dart';
+import '../../data/services/firebase_auth_service.dart';
 
-// Provider global untuk instance ApiService (singleton).
-final authServiceProvider = Provider<ApiService>((ref) {
-  return ApiService();
+// Provider global untuk instance FirebaseAuthService (singleton).
+final authServiceProvider = Provider<FirebaseAuthService>((ref) {
+  return FirebaseAuthService();
 });
 
 // State yang dipegang oleh AuthNotifier.
@@ -40,49 +22,41 @@ final authStateProvider = StateNotifierProvider<AuthNotifier, AuthState>((ref) {
   return AuthNotifier(service);
 });
 
-/// AuthNotifier mengelola siklus hidup autentikasi:
-///   - init: memeriksa token tersimpan saat startup
-///   - login / register: autentikasi ke backend
-///   - logout: menghapus token dan mereset state
-///   - changePassword: mengubah kata sandi
 class AuthNotifier extends StateNotifier<AuthState> {
-  final ApiService _api;
+  final FirebaseAuthService _authService;
 
-  AuthNotifier(this._api) : super(const AsyncValue.loading()) {
-    // Periksa token tersimpan saat notifier pertama kali dibuat.
-    // Ini memungkinkan auto-login jika token masih valid.
+  AuthNotifier(this._authService) : super(const AsyncValue.loading()) {
     _init();
   }
 
-  // Periksa apakah user sudah pernah login (token tersimpan dan valid).
-  Future<void> _init() async {
-    try {
-      final hasToken = await _api.hasToken();
-      if (hasToken) {
-        // Ambil data user terkini dari backend menggunakan token yang tersimpan.
-        final user = await _api.getMe();
-        state = AsyncValue.data(user);
+  // Mendengarkan status autentikasi Firebase
+  void _init() {
+    _authService.authStateChanges.listen((firebaseUser) async {
+      if (firebaseUser != null) {
+        try {
+          final profile = await _authService.getCurrentUserProfile();
+          state = AsyncValue.data(profile);
+        } catch (e) {
+          state = AsyncValue.error(e, StackTrace.current);
+        }
       } else {
-        // Tidak ada token; user perlu login.
         state = const AsyncValue.data(null);
       }
-    } catch (_) {
-      // Token mungkin kadaluarsa atau jaringan bermasalah; paksa logout.
-      await _api.clearToken();
-      state = const AsyncValue.data(null);
-    }
+    });
   }
 
   /// Login dengan email dan password.
-  /// Memperbarui state menjadi UserModel jika berhasil.
   Future<void> login({
     required String email,
     required String password,
   }) async {
     state = const AsyncValue.loading();
-    state = await AsyncValue.guard(
-      () => _api.login(email: email, password: password),
-    );
+    try {
+      final user = await _authService.login(email: email, password: password);
+      state = AsyncValue.data(user);
+    } catch (e) {
+      state = AsyncValue.error(e, StackTrace.current);
+    }
   }
 
   /// Registrasi pengguna baru.
@@ -92,23 +66,31 @@ class AuthNotifier extends StateNotifier<AuthState> {
     required String password,
   }) async {
     state = const AsyncValue.loading();
-    state = await AsyncValue.guard(
-      () => _api.register(name: name, email: email, password: password),
-    );
+    try {
+      final user = await _authService.register(name: name, email: email, password: password);
+      state = AsyncValue.data(user);
+    } catch (e) {
+      state = AsyncValue.error(e, StackTrace.current);
+    }
   }
 
-  /// Logout: menghapus token dan mereset state ke null.
+  /// Logout.
   Future<void> logout() async {
-    await _api.logout();
-    state = const AsyncValue.data(null);
+    state = const AsyncValue.loading();
+    try {
+      await _authService.logout();
+      state = const AsyncValue.data(null);
+    } catch (e) {
+      state = AsyncValue.error(e, StackTrace.current);
+    }
   }
 
-  /// Mengubah kata sandi. Melempar exception jika gagal (ditangkap oleh UI).
+  /// Mengubah kata sandi.
   Future<void> changePassword({
     required String oldPassword,
     required String newPassword,
   }) async {
-    await _api.changePassword(
+    await _authService.changePassword(
       oldPassword: oldPassword,
       newPassword: newPassword,
     );
@@ -117,3 +99,4 @@ class AuthNotifier extends StateNotifier<AuthState> {
   /// Mengembalikan data UserModel yang sedang login, atau null jika belum login.
   UserModel? get currentUser => state.valueOrNull;
 }
+

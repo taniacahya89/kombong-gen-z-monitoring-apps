@@ -219,53 +219,20 @@ class AppStrings {
 }
 
 // ---------------------------------------------------------------------------
-// TOPIK MQTT
+// PATH & NAMA DOKUMEN FIREBASE
 // ---------------------------------------------------------------------------
 
-class MqttTopics {
-  MqttTopics._();
+class FirebasePaths {
+  FirebasePaths._();
 
-  // Subscribe: Data dari perangkat IoT ke aplikasi
-  static const String waterTankSensor = 'iot/pengabdian/sensor/tangki';
-  static const String solarSensor = 'iot/pengabdian/sensor/listrik';
+  // Realtime Database Paths (untuk data sensor real-time)
+  static const String waterTankSensor = 'sensors/water_tank';
+  static const String powerSensor = 'sensors/power';
 
-  // Publish: Kontrol dari aplikasi ke perangkat IoT
-  static const String feedingControl = 'iot/pengabdian/kontrol/pakan';
-}
-
-// ---------------------------------------------------------------------------
-// ENDPOINT API (Backend Go Fiber)
-// Akan diaktifkan pada Fase 2 saat backend siap.
-// ---------------------------------------------------------------------------
-
-class ApiEndpoints {
-  ApiEndpoints._();
-
-  static const String baseUrl = 'http://localhost:3000/api/v1';
-  // Catatan: localhost digunakan untuk web (Chrome) dan Windows desktop.
-  // Ganti ke 10.0.2.2 untuk emulator Android, atau IP lokal (192.168.x.x)
-  // untuk perangkat fisik Android/iOS.
-
-  // Auth
-  static const String login = '/auth/login';
-  static const String register = '/auth/register';
-  static const String logout = '/auth/logout';
-  static const String me = '/auth/me';
-  static const String changePassword = '/auth/change-password';
-
-  // Sensor Data
-  static const String waterTankLatest = '/sensors/water-tank';
-  static const String waterTankHistory = '/sensors/water-tank/history';
-  static const String powerLatest = '/sensors/power';
-  static const String powerHistory = '/sensors/power/history';
-  static const String deviceStatus = '/sensors/status';
-
-  // Jadwal Pakan
-  static const String feedingSchedules = '/feeding/schedules';
-
-  // Notifikasi
-  static const String notifications = '/notifications';
-  static const String notificationsReadAll = '/notifications/read-all';
+  // Firestore Collection Names (untuk data terstruktur & persisten)
+  static const String usersCollection = 'users';
+  static const String schedulesCollection = 'feeding_schedules';
+  static const String notificationsCollection = 'notifications';
 }
 
 // ---------------------------------------------------------------------------
@@ -352,4 +319,25 @@ class AppConfig {
   /// mendapat pengingat jika aplikasi dibiarkan terbuka lama.
   static const Duration notificationCooldown = Duration(minutes: 5);
 }
+
+// ---------------------------------------------------------------------------
+// KONFIGURASI MQTT
+// ---------------------------------------------------------------------------
+
+class MqttConfig {
+  MqttConfig._();
+
+  // Broker publik EMQX — plain MQTT (non-TLS), tanpa autentikasi
+  static const String broker = 'broker.emqx.io';
+  static const int port = 1883;
+
+  static const String clientIdPrefix = 'kombong_genz_';
+
+  // Topik MQTT
+  static const String topicDistance = 'alatku/sensor/jarak';
+  static const String topicVoltage = 'alatku/sensor/tegangan';
+  static const String topicCurrent = 'alatku/sensor/arus';
+  static const String topicFeedNotification = 'alatku/notifikasi/makan';
+}
+
 

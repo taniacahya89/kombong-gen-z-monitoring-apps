@@ -13,7 +13,9 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter/foundation.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:firebase_core/firebase_core.dart';
 
+import 'firebase_options.dart';
 import 'core/routes/app_routes.dart';
 import 'core/theme/app_theme.dart';
 import 'core/constants/app_constants.dart';
@@ -21,6 +23,21 @@ import 'data/services/local_notification_service.dart';
 
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
+  
+  // Inisialisasi Firebase Core dengan try-catch untuk debugging
+  try {
+    if (Firebase.apps.isEmpty) {
+      await Firebase.initializeApp(
+        options: DefaultFirebaseOptions.currentPlatform,
+      );
+      debugPrint('[Firebase] Inisialisasi berhasil.');
+    } else {
+      debugPrint('[Firebase] Sudah terinisialisasi.');
+    }
+  } catch (e, stack) {
+    debugPrint('[Firebase] Error saat inisialisasi: $e');
+    debugPrint('[Firebase] StackTrace: $stack');
+  }
 
   // setPreferredOrientations hanya relevan di mobile — tidak perlu di web/desktop
   if (!kIsWeb) {

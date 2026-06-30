@@ -30,6 +30,14 @@ class WaterTankModel {
     );
   }
 
+  factory WaterTankModel.fromRealtimeDb(Map<String, dynamic> data) {
+    return WaterTankModel(
+      currentHeightCm: (data['current_height_cm'] as num).toDouble(),
+      maxCapacityCm: (data['max_capacity_cm'] as num).toDouble(),
+      status: data['status'] as String? ?? 'Aman',
+    );
+  }
+
   factory WaterTankModel.fromJson(Map<String, dynamic> json) {
     // Backend /sensors/water-tank mengembalikan data flat (tanpa wrapper).
     // Format MQTT payload menggunakan wrapper 'water_tank'.

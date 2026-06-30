@@ -853,7 +853,7 @@ class ScheduleScreen extends ConsumerWidget {
                 if (labelController.text.trim().isEmpty) return;
 
                 final newSchedule = FeedingScheduleModel(
-                  id: schedule?.id ?? 0,
+                  firestoreId: schedule?.firestoreId ?? '',
                   label: labelController.text.trim(),
                   time: selectedTime,
                   feedType: selectedFeedType,
