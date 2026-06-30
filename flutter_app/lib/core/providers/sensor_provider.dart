@@ -6,8 +6,14 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:mqtt_client/mqtt_client.dart';
 import '../../data/models/sensor_state.dart';
 import '../../data/services/mqtt_service.dart';
+import '../../data/services/firebase_database_service.dart';
 import '../../data/repositories/sensor_repository.dart';
 import 'schedule_provider.dart'; // Untuk mengakses firestoreServiceProvider
+
+/// Provider untuk instance FirebaseDatabaseService.
+final firebaseDatabaseServiceProvider = Provider<FirebaseDatabaseService>((ref) {
+  return FirebaseDatabaseService();
+});
 
 /// Provider untuk instance MqttService (singleton).
 /// connect() dipanggil di sini agar koneksi MQTT otomatis dimulai
@@ -24,7 +30,8 @@ final mqttServiceProvider = Provider<MqttService>((ref) {
 final sensorRepositoryProvider = Provider<SensorRepository>((ref) {
   final mqttService = ref.watch(mqttServiceProvider);
   final firestoreService = ref.watch(firestoreServiceProvider);
-  final repo = SensorRepository(mqttService, firestoreService);
+  final firebaseDatabaseService = ref.watch(firebaseDatabaseServiceProvider);
+  final repo = SensorRepository(mqttService, firestoreService, firebaseDatabaseService);
   ref.onDispose(() => repo.dispose());
   return repo;
 });

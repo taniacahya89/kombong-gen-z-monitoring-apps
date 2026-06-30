@@ -19,17 +19,14 @@ class FirestoreService {
   Future<void> _syncSchedulesToRealtimeDb() async {
     try {
       final list = await getFeedingSchedules();
-      final activeHours = list
+      final activeSchedules = list
           .where((s) => s.isActive && s.feedType == 'pakan')
-          .map((s) {
-            final parts = s.time.split(':');
-            return parts.isNotEmpty ? int.tryParse(parts[0]) ?? 0 : 0;
-          })
+          .map((s) => s.time)
           .toList();
       
-      // Tulis array jam ke path kontrol/jam_pakan di RTDB
-      await _rtdb.ref('kontrol/jam_pakan').set(activeHours);
-      debugPrint('[FirestoreSync] Jam pakan disinkronkan ke RTDB: $activeHours');
+      // Tulis array jadwal (format string "HH:mm") ke path kontrol/jam_pakan di RTDB
+      await _rtdb.ref('kontrol/jam_pakan').set(activeSchedules);
+      debugPrint('[FirestoreSync] Jadwal pakan disinkronkan ke RTDB: $activeSchedules');
     } catch (e) {
       debugPrint('[FirestoreSync] Gagal sinkronisasi jadwal ke RTDB: $e');
     }
@@ -146,12 +143,18 @@ class FirestoreService {
   }
 
   /// Buat notifikasi baru.
-  Future<void> createNotification({required String title, required String body}) async {
+  Future<void> createNotification({
+    required String title,
+    required String body,
+    DateTime? createdAt,
+  }) async {
     await _db.collection('notifications').add({
       'title': title,
       'body': body,
       'is_read': false,
-      'created_at': FieldValue.serverTimestamp(),
+      'created_at': createdAt != null
+          ? Timestamp.fromDate(createdAt)
+          : FieldValue.serverTimestamp(),
     });
   }
 }

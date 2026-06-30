@@ -7,6 +7,8 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../data/models/feeding_schedule_model.dart';
 import '../../data/services/firestore_service.dart';
 
+import '../../data/services/local_notification_service.dart';
+
 // Provider global untuk instance FirestoreService (singleton).
 final firestoreServiceProvider = Provider<FirestoreService>((ref) {
   return FirestoreService();
@@ -42,6 +44,7 @@ class ScheduleNotifier extends StateNotifier<ScheduleState> {
     _subscription = _firestore.watchFeedingSchedules().listen(
       (schedules) {
         state = AsyncValue.data(schedules);
+        _syncAllLocalNotifications(schedules);
       },
       onError: (err, stack) {
         state = AsyncValue.error(err, stack);
@@ -49,9 +52,24 @@ class ScheduleNotifier extends StateNotifier<ScheduleState> {
     );
   }
 
+  /// Menyelaraskan seluruh jadwal lokal HP dengan Firestore
+  Future<void> _syncAllLocalNotifications(List<FeedingScheduleModel> schedules) async {
+    for (final s in schedules) {
+      final int notifId = s.firestoreId.hashCode;
+      if (s.isActive && s.feedType == 'pakan') {
+        await LocalNotificationService.instance.scheduleFeedingNotification(s);
+      } else {
+        await LocalNotificationService.instance.cancelNotification(notifId);
+      }
+    }
+  }
+
   /// Membuat jadwal pakan baru.
   Future<void> createSchedule(FeedingScheduleModel newSchedule) async {
-    await _firestore.createFeedingSchedule(newSchedule);
+    final created = await _firestore.createFeedingSchedule(newSchedule);
+    if (created.isActive && created.feedType == 'pakan') {
+      await LocalNotificationService.instance.scheduleFeedingNotification(created);
+    }
   }
 
   /// Memperbarui jadwal yang ada.
@@ -73,6 +91,13 @@ class ScheduleNotifier extends StateNotifier<ScheduleState> {
     }
     final withId = updated.copyWith(firestoreId: firestoreId);
     await _firestore.updateFeedingSchedule(withId);
+
+    final int notifId = withId.firestoreId.hashCode;
+    if (withId.isActive && withId.feedType == 'pakan') {
+      await LocalNotificationService.instance.scheduleFeedingNotification(withId);
+    } else {
+      await LocalNotificationService.instance.cancelNotification(notifId);
+    }
   }
 
   /// Menghapus jadwal.
@@ -91,6 +116,7 @@ class ScheduleNotifier extends StateNotifier<ScheduleState> {
     }
     if (firestoreId != null) {
       await _firestore.deleteFeedingSchedule(firestoreId);
+      await LocalNotificationService.instance.cancelNotification(firestoreId.hashCode);
     }
   }
 

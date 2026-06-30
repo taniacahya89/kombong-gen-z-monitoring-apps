@@ -9,11 +9,13 @@ import 'package:flutter/foundation.dart';
 import '../../data/models/sensor_state.dart';
 import '../../data/services/mqtt_service.dart';
 import '../../data/services/firestore_service.dart';
+import '../../data/services/firebase_database_service.dart';
 import '../../data/services/local_notification_service.dart';
 
 class SensorRepository {
   final MqttService _mqttService;
   final FirestoreService _firestoreService;
+  final FirebaseDatabaseService _firebaseDatabaseService;
 
   // Cache state saat ini (menggabungkan data parsial topik)
   SensorState _currentState = SensorState.initial();
@@ -28,7 +30,7 @@ class SensorRepository {
   // Subscription list agar mudah di-cancel jika dispose
   final List<StreamSubscription> _subscriptions = [];
 
-  SensorRepository(this._mqttService, this._firestoreService) {
+  SensorRepository(this._mqttService, this._firestoreService, this._firebaseDatabaseService) {
     _init();
   }
 
@@ -92,6 +94,46 @@ class SensorRepository {
           );
         } catch (e) {
           debugPrint('[SensorRepository] Gagal memicu local push notification: $e');
+        }
+      }),
+    );
+
+    // 5. Dengarkan trigger notifikasi pakan dari Firebase Realtime Database
+    final int startTime = DateTime.now().millisecondsSinceEpoch;
+    _subscriptions.add(
+      _firebaseDatabaseService.watchNotificationsTrigger().listen((data) async {
+        if (data.isEmpty) return;
+
+        final createdAt = data['created_at'] as int?;
+        // Hanya proses notifikasi baru yang masuk setelah aplikasi dijalankan (atau maks 30 detik sebelumnya)
+        if (createdAt == null || createdAt < startTime - 30000) {
+          return;
+        }
+
+        final title = data['title'] as String? ?? 'Pemberian Pakan';
+        final body = data['body'] as String? ?? 'Waktunya ayam makan!';
+
+        debugPrint('[SensorRepository] Diterima trigger pakan dari RTDB: $body');
+
+        // A. Log ke Firestore secara persisten (riwayat di app)
+        try {
+          await _firestoreService.createNotification(
+            title: title,
+            body: body,
+          );
+        } catch (e) {
+          debugPrint('[SensorRepository] Gagal menyimpan notifikasi RTDB ke Firestore: $e');
+        }
+
+        // B. Picu local push notification perangkat
+        try {
+          await LocalNotificationService.instance.showWaterTankAlert(
+            id: 1002, // ID unik terpisah dari tangki air (1001)
+            title: title,
+            body: body,
+          );
+        } catch (e) {
+          debugPrint('[SensorRepository] Gagal memicu local push notification untuk RTDB: $e');
         }
       }),
     );

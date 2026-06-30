@@ -22,6 +22,7 @@ import '../../../core/routes/app_routes.dart';
 import '../../../core/providers/auth_provider.dart';
 import '../../../core/providers/dashboard_provider.dart';
 import '../../../core/providers/schedule_provider.dart';
+import '../../../core/providers/notification_provider.dart';
 import '../../widgets/dashboard/water_tank_card.dart';
 import '../../widgets/dashboard/schedule_card.dart';
 import '../../widgets/dashboard/energy_card.dart';
@@ -72,6 +73,10 @@ class _DashboardScreenState extends ConsumerState<DashboardScreen> {
     final authState = ref.watch(authStateProvider);
     final user = authState.valueOrNull;
     final userName = user?.name ?? 'User';
+
+    // 1b. Data Notifikasi untuk badge lonceng
+    final notificationState = ref.watch(notificationProvider);
+    final unreadCount = notificationState.unreadCount;
 
     // 2. Data Sensor Tangki Air (FutureProvider)
     final waterTankAsync = ref.watch(waterTankProvider);
@@ -245,7 +250,7 @@ class _DashboardScreenState extends ConsumerState<DashboardScreen> {
             SliverToBoxAdapter(
               child: Padding(
                 padding: const EdgeInsets.fromLTRB(20, 20, 20, 0),
-                child: _buildHeader(userName),
+                child: _buildHeader(userName, unreadCount),
               ),
             ),
 
@@ -283,7 +288,7 @@ class _DashboardScreenState extends ConsumerState<DashboardScreen> {
   // WIDGET HEADER DASHBOARD
   // Menampilkan avatar, nama farm, dan greeting dengan nama user
   // -------------------------------------------------------------------------
-  Widget _buildHeader(String userName) {
+  Widget _buildHeader(String userName, int unreadCount) {
     return Row(
       children: [
         // Avatar Bulat
@@ -360,10 +365,19 @@ class _DashboardScreenState extends ConsumerState<DashboardScreen> {
           onPressed: () {
             context.goNamed(AppRouteNames.notifications);
           },
-          icon: const Icon(
-            Icons.notifications_outlined,
-            color: AppColors.textSecondary,
-          ),
+          icon: unreadCount > 0
+              ? Badge(
+                  label: Text('$unreadCount'),
+                  backgroundColor: AppColors.textAccentRed,
+                  child: const Icon(
+                    Icons.notifications_outlined,
+                    color: AppColors.textSecondary,
+                  ),
+                )
+              : const Icon(
+                  Icons.notifications_outlined,
+                  color: AppColors.textSecondary,
+                ),
         ),
       ],
     );

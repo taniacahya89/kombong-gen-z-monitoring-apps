@@ -108,4 +108,15 @@ class FirebaseDatabaseService {
       return {'status': 'error', 'message': 'Gagal memeriksa status perangkat: $e'};
     }
   }
+
+  // ---------------------------------------------------------------------------
+  // NOTIFICATIONS TRIGGER - Stream real-time penambahan child baru
+  // ---------------------------------------------------------------------------
+  Stream<Map<String, dynamic>> watchNotificationsTrigger() {
+    return _database.ref('notifications_trigger').onChildAdded.map((event) {
+      final data = event.snapshot.value;
+      if (data == null) return const {};
+      return Map<String, dynamic>.from(data as Map);
+    });
+  }
 }
